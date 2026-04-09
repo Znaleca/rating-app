@@ -1,14 +1,43 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import { FaSearch, FaSpinner, FaBook, FaFilm, FaTv, FaGamepad, FaKey, FaFire } from 'react-icons/fa';
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface MediaResult {
     id: string;
     title: string;
-    subtitle?: string; // Author, Director, or Release Year
+    subtitle?: string;
     imageUrl?: string;
     type: 'book' | 'movie' | 'tv' | 'game';
+}
+
+interface GoogleBookItem {
+    id: string;
+    volumeInfo: {
+        title: string;
+        authors?: string[];
+        imageLinks?: { smallThumbnail?: string };
+    };
+}
+
+interface TMDBItem {
+    id: number;
+    media_type: 'movie' | 'tv';
+    title?: string;
+    name?: string;
+    release_date?: string;
+    first_air_date?: string;
+    poster_path?: string;
+}
+
+interface RAWGItem {
+    id: number;
+    name: string;
+    released?: string;
+    background_image?: string;
 }
 
 export default function SearchBar() {
@@ -16,26 +45,23 @@ export default function SearchBar() {
     const [results, setResults] = useState<MediaResult[]>([]);
     const [trendingResults, setTrendingResults] = useState<MediaResult[]>([]);
     const [loading, setLoading] = useState(false);
-    const [loadingTrending, setLoadingTrending] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
     const [missingApiKey, setMissingApiKey] = useState(false);
     const searchRef = useRef<HTMLDivElement>(null);
 
-    // Fetch trending data on mount
+    // Fetch trending data (Logic remains the same)
     useEffect(() => {
         let isMounted = true;
         const fetchTrending = async () => {
-            setLoadingTrending(true);
             try {
                 const tmdbKey = process.env.NEXT_PUBLIC_TMDB_API_KEY;
                 const rawgKey = process.env.NEXT_PUBLIC_RAWG_API_KEY;
 
-                // 1. Fetch Books
                 const fetchBooks = fetch(`https://www.googleapis.com/books/v1/volumes?q=subject:fiction&orderBy=newest&maxResults=3`)
                     .then(res => res.json())
                     .then(data => {
                         if (!data.items) return [];
-                        return data.items.map((book: any) => ({
+                        return data.items.map((book: GoogleBookItem) => ({
                             id: `trend-book-${book.id}`,
                             title: book.volumeInfo.title,
                             subtitle: book.volumeInfo.authors ? book.volumeInfo.authors.join(', ') : '',
@@ -44,32 +70,30 @@ export default function SearchBar() {
                         }));
                     }).catch(() => []);
 
-                // 2. Fetch Trending Movies/TV
                 const fetchTmdb = tmdbKey
                     ? fetch(`https://api.themoviedb.org/3/trending/all/day?api_key=${tmdbKey}`)
                         .then(res => res.json())
                         .then(data => {
                             if (!data.results) return [];
                             return data.results
-                                .filter((item: any) => item.media_type === 'movie' || item.media_type === 'tv')
+                                .filter((item: TMDBItem) => item.media_type === 'movie' || item.media_type === 'tv')
                                 .slice(0, 3)
-                                .map((item: any) => ({
+                                .map((item: TMDBItem) => ({
                                     id: `trend-tmdb-${item.id}`,
                                     title: item.title || item.name,
                                     subtitle: (item.release_date || item.first_air_date || '').split('-')[0],
                                     imageUrl: item.poster_path ? `https://image.tmdb.org/t/p/w92${item.poster_path}` : undefined,
-                                    type: (item.media_type) as 'movie' | 'tv'
+                                    type: item.media_type
                                 }));
                         }).catch(() => [])
                     : Promise.resolve([]);
 
-                // 3. Fetch Popular Games
                 const fetchRawg = rawgKey
                     ? fetch(`https://api.rawg.io/api/games?key=${rawgKey}&ordering=-added&page_size=3`)
                         .then(res => res.json())
                         .then(data => {
                             if (!data.results) return [];
-                            return data.results.map((game: any) => ({
+                            return data.results.map((game: RAWGItem) => ({
                                 id: `trend-rawg-${game.id}`,
                                 title: game.name,
                                 subtitle: game.released ? game.released.split('-')[0] : '',
@@ -82,14 +106,11 @@ export default function SearchBar() {
                 const [books, tmdbResults, games] = await Promise.all([fetchBooks, fetchTmdb, fetchRawg]);
 
                 if (isMounted) {
-                    // Combine and shuffle to show a random mix
                     const combined = [...tmdbResults, ...games, ...books].sort(() => 0.5 - Math.random()).slice(0, 6);
                     setTrendingResults(combined);
                 }
             } catch (error) {
                 console.error("Error fetching trending:", error);
-            } finally {
-                if (isMounted) setLoadingTrending(false);
             }
         };
 
@@ -97,7 +118,7 @@ export default function SearchBar() {
         return () => { isMounted = false; };
     }, []);
 
-    // Debounce search
+    // Debounce search (Logic remains the same)
     useEffect(() => {
         if (!query.trim()) {
             setResults([]);
@@ -113,74 +134,50 @@ export default function SearchBar() {
                 const tmdbKey = process.env.NEXT_PUBLIC_TMDB_API_KEY;
                 const rawgKey = process.env.NEXT_PUBLIC_RAWG_API_KEY;
 
-                if (!tmdbKey || !rawgKey) {
-                    setMissingApiKey(true);
-                }
+                if (!tmdbKey || !rawgKey) setMissingApiKey(true);
 
-                // 1. Fetch Books
                 const fetchBooks = fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=3`)
                     .then(res => res.json())
-                    .then(data => {
-                        if (!data.items) return [];
-                        return data.items.map((book: any) => ({
-                            id: `book-${book.id}`,
-                            title: book.volumeInfo.title,
-                            subtitle: book.volumeInfo.authors ? book.volumeInfo.authors.join(', ') : '',
-                            imageUrl: book.volumeInfo.imageLinks?.smallThumbnail?.replace('http:', 'https:'),
-                            type: 'book' as const
-                        }));
-                    }).catch(() => []);
+                    .then(data => (data.items || []).map((book: GoogleBookItem) => ({
+                        id: `book-${book.id}`,
+                        title: book.volumeInfo.title,
+                        subtitle: book.volumeInfo.authors ? book.volumeInfo.authors.join(', ') : '',
+                        imageUrl: book.volumeInfo.imageLinks?.smallThumbnail?.replace('http:', 'https:'),
+                        type: 'book' as const
+                    })));
 
-                // 2. Fetch Movies & TV (if key exists)
                 const fetchTmdb = tmdbKey
                     ? fetch(`https://api.themoviedb.org/3/search/multi?api_key=${tmdbKey}&query=${encodeURIComponent(query)}&include_adult=false`)
                         .then(res => res.json())
-                        .then(data => {
-                            if (!data.results) return [];
-                            return data.results
-                                .filter((item: any) => item.media_type === 'movie' || item.media_type === 'tv')
-                                .slice(0, 4)
-                                .map((item: any) => ({
-                                    id: `tmdb-${item.id}`,
-                                    title: item.title || item.name,
-                                    subtitle: (item.release_date || item.first_air_date || '').split('-')[0],
-                                    imageUrl: item.poster_path ? `https://image.tmdb.org/t/p/w92${item.poster_path}` : undefined,
-                                    type: (item.media_type) as 'movie' | 'tv'
-                                }));
-                        }).catch(() => [])
-                    : Promise.resolve([]);
+                        .then(data => (data.results || [])
+                            .filter((item: TMDBItem) => item.media_type === 'movie' || item.media_type === 'tv')
+                            .slice(0, 4)
+                            .map((item: TMDBItem) => ({
+                                id: `tmdb-${item.id}`,
+                                title: item.title || item.name,
+                                subtitle: (item.release_date || item.first_air_date || '').split('-')[0],
+                                imageUrl: item.poster_path ? `https://image.tmdb.org/t/p/w92${item.poster_path}` : undefined,
+                                type: item.media_type
+                            }))) : Promise.resolve([]);
 
-                // 3. Fetch Games (if key exists)
                 const fetchRawg = rawgKey
                     ? fetch(`https://api.rawg.io/api/games?key=${rawgKey}&search=${encodeURIComponent(query)}&page_size=3`)
                         .then(res => res.json())
-                        .then(data => {
-                            if (!data.results) return [];
-                            return data.results.map((game: any) => ({
-                                id: `rawg-${game.id}`,
-                                title: game.name,
-                                subtitle: game.released ? game.released.split('-')[0] : '',
-                                imageUrl: game.background_image || undefined,
-                                type: 'game' as const
-                            }));
-                        }).catch(() => [])
-                    : Promise.resolve([]);
+                        .then(data => (data.results || []).map((game: RAWGItem) => ({
+                            id: `rawg-${game.id}`,
+                            title: game.name,
+                            subtitle: game.released ? game.released.split('-')[0] : '',
+                            imageUrl: game.background_image || undefined,
+                            type: 'game' as const
+                        }))) : Promise.resolve([]);
 
-                // Run concurrently
-                const [books, tmdbResults, games] = await Promise.all([fetchBooks, fetchTmdb, fetchRawg]);
+                const [b, t, g] = await Promise.all([fetchBooks, fetchTmdb, fetchRawg]);
+                const combined = [...t, ...g, ...b].slice(0, 9);
 
-                // Interleave or just combine results (prioritize finding exact matches or sort by type)
-                const combined = [...tmdbResults, ...games, ...books].slice(0, 9);
-
-                if (combined.length > 0) {
-                    setResults(combined);
-                    setIsOpen(true);
-                } else {
-                    setResults([]);
-                }
+                setResults(combined);
+                if (combined.length > 0) setIsOpen(true);
             } catch (error) {
-                console.error("Error searching media:", error);
-                setResults([]);
+                console.error("Search error:", error);
             } finally {
                 setLoading(false);
             }
@@ -189,92 +186,80 @@ export default function SearchBar() {
         return () => clearTimeout(timer);
     }, [query]);
 
-    // Click outside to close
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
-            if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
-                setIsOpen(false);
-            }
+            if (searchRef.current && !searchRef.current.contains(event.target as Node)) setIsOpen(false);
         }
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
     return (
-        <div className="relative w-full max-w-[14rem] md:max-w-[16rem] lg:max-w-sm hidden sm:block" ref={searchRef}>
-            <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+        <div className="relative w-full z-60" ref={searchRef}>
+            <div className="relative group">
+                <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
                     {loading ? (
-                        <FaSpinner className="h-3.5 w-3.5 text-slate-400 animate-spin" />
+                        <FaSpinner className="h-3 w-3 text-amber-500 animate-spin" />
                     ) : (
-                        <FaSearch className="h-3.5 w-3.5 text-slate-400" />
+                        <FaSearch className="h-3 w-3 text-zinc-500 group-focus-within:text-amber-500 transition-colors" />
                     )}
                 </div>
                 <input
                     type="text"
-                    className="block w-full pl-9 pr-4 py-1.5 lg:py-2 border border-slate-200/80 rounded-full leading-5 bg-slate-100/50 hover:bg-white placeholder-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-yellow-500/50 focus:border-yellow-500/50 sm:text-sm transition-all shadow-inner"
-                    placeholder="Search books..."
+                    className="block w-full pl-10 pr-4 py-2.5 bg-zinc-900/50 border border-white/5 rounded-full text-xs font-medium text-white placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-amber-500/50 focus:bg-zinc-900 transition-all"
+                    placeholder="Search the archives..."
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    onFocus={() => {
-                        setIsOpen(true);
-                    }}
+                    onFocus={() => setIsOpen(true)}
                 />
             </div>
 
-            {/* Dropdown */}
+            {/* Results Dropdown */}
             {isOpen && ((query.trim() ? results.length > 0 : trendingResults.length > 0) || (query.trim() && missingApiKey)) && (
-                <div className="absolute top-full mt-2 w-[280px] md:w-full md:min-w-[340px] left-1/2 -translate-x-1/2 md:translate-x-0 md:left-0 bg-white rounded-xl shadow-lg shadow-slate-200/50 border border-slate-100 overflow-hidden z-50">
+                <div className="absolute top-full mt-3 w-full min-w-[320px] left-0 bg-zinc-950 border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
 
                     {!query.trim() && trendingResults.length > 0 && (
-                        <div className="bg-slate-50 border-b border-slate-100 p-2.5 flex items-center gap-2">
-                            <FaFire className="text-orange-500 w-3.5 h-3.5" />
-                            <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">Discover Trending</span>
+                        <div className="bg-white/5 px-4 py-3 flex items-center gap-2 border-b border-white/5">
+                            <FaFire className="text-amber-500 w-3 h-3" />
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Discover Trending</span>
                         </div>
                     )}
 
-                    <ul className="max-h-[70vh] md:max-h-[400px] overflow-y-auto p-1.5 scrollbar-thin scrollbar-thumb-slate-200">
+                    <ul className="max-h-100 overflow-y-auto p-2 scrollbar-hide">
                         {(query.trim() ? results : trendingResults).map((item) => (
                             <li key={item.id}>
                                 <button
-                                    onClick={() => {
-                                        setIsOpen(false);
-                                        setQuery('');
-                                    }}
-                                    className="w-full text-left flex items-start gap-3 p-2 hover:bg-slate-50 rounded-lg transition-colors cursor-pointer group"
+                                    onClick={() => { setIsOpen(false); setQuery(''); }}
+                                    className="w-full text-left flex items-center gap-4 p-2.5 hover:bg-white/5 rounded-xl transition-all group"
                                 >
-                                    {item.imageUrl ? (
-                                        <img
-                                            src={item.imageUrl}
-                                            alt={item.title}
-                                            className="w-10 h-14 md:w-12 md:h-[72px] object-cover rounded shadow-sm group-hover:shadow transition-shadow shrink-0 bg-slate-100"
-                                        />
-                                    ) : (
-                                        <div className="w-10 h-14 md:w-12 md:h-[72px] bg-slate-100 rounded flex items-center justify-center border border-slate-200 shrink-0">
-                                            {item.type === 'book' ? <FaBook className="text-slate-300" /> :
-                                                item.type === 'movie' ? <FaFilm className="text-slate-300" /> :
-                                                    item.type === 'game' ? <FaGamepad className="text-slate-300" /> :
-                                                        <FaTv className="text-slate-300" />}
-                                        </div>
-                                    )}
-                                    <div className="flex-1 min-w-0 py-0.5">
-                                        <div className="flex items-start justify-between gap-2">
-                                            <h4 className="text-sm font-bold text-slate-900 truncate pr-2">
+                                    <div className="relative w-10 h-14 overflow-hidden rounded-lg bg-zinc-900 border border-white/5 shrink-0">
+                                        {item.imageUrl ? (
+                                            <Image src={item.imageUrl} alt={item.title} fill className="object-cover transition-transform duration-500 group-hover:scale-110" sizes="40px" />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center text-zinc-700">
+                                                {item.type === 'book' ? <FaBook size={12}/> : item.type === 'movie' ? <FaFilm size={12}/> : item.type === 'game' ? <FaGamepad size={12}/> : <FaTv size={12}/>}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between gap-2">
+                                            <h4 className="text-[13px] font-bold text-zinc-100 truncate group-hover:text-amber-500 transition-colors">
                                                 {item.title}
                                             </h4>
-                                            <span className={`shrink-0 text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md ${item.type === 'movie' ? 'bg-indigo-50 text-indigo-600 border border-indigo-100' :
-                                                item.type === 'tv' ? 'bg-rose-50 text-rose-600 border border-rose-100' :
-                                                    item.type === 'game' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
-                                                        'bg-amber-50 text-amber-600 border border-amber-100'
-                                                }`}>
+                                        </div>
+                                        <div className="flex items-center gap-2 mt-1">
+                                            <span className="text-[9px] font-black uppercase tracking-wider text-amber-500/80">
                                                 {item.type}
                                             </span>
+                                            {item.subtitle && (
+                                                <>
+                                                    <span className="w-1 h-1 rounded-full bg-zinc-800" />
+                                                    <span className="text-[10px] text-zinc-500 truncate font-medium uppercase tracking-tight">
+                                                        {item.subtitle}
+                                                    </span>
+                                                </>
+                                            )}
                                         </div>
-                                        {item.subtitle && (
-                                            <p className="text-xs text-slate-500 truncate mt-1 font-medium">
-                                                {item.subtitle}
-                                            </p>
-                                        )}
                                     </div>
                                 </button>
                             </li>
@@ -282,11 +267,13 @@ export default function SearchBar() {
                     </ul>
 
                     {missingApiKey && (
-                        <div className="bg-slate-50 border-t border-slate-100 p-3 text-xs text-slate-500 flex items-start gap-2">
-                            <FaKey className="w-3.5 h-3.5 text-slate-400 mt-0.5 shrink-0" />
-                            <p>
-                                Missing some API keys. To see all results, add <code className="font-mono text-[10px] bg-white px-1 py-0.5 rounded border border-slate-200">NEXT_PUBLIC_TMDB_API_KEY</code> and <code className="font-mono text-[10px] bg-white px-1 py-0.5 rounded border border-slate-200">NEXT_PUBLIC_RAWG_API_KEY</code> to your <code className="font-mono text-[10px]">.env.local</code>.
-                            </p>
+                        <div className="bg-amber-500/5 px-4 py-3 text-[10px] text-zinc-500 border-t border-white/5">
+                            <div className="flex items-start gap-2">
+                                <FaKey className="w-3 h-3 text-amber-500/50 mt-0.5 shrink-0" />
+                                <p className="leading-relaxed uppercase tracking-tight font-bold">
+                                    Archive sync incomplete. Check <span className="text-amber-500/70">.env.local</span>
+                                </p>
+                            </div>
                         </div>
                     )}
                 </div>
