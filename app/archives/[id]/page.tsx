@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { FaStar, FaCalendar, FaClock, FaArrowLeft, FaBolt } from "react-icons/fa";
+import Header from "@/components/Header";
 
 // Define the shape
 interface DetailData {
@@ -149,7 +150,9 @@ export default function ArchiveDetails() {
     }
 
     return (
-        <main className="min-h-screen bg-zinc-950 text-white selection:bg-amber-500/30">
+        <div className="min-h-screen bg-zinc-950 text-white selection:bg-amber-500/30">
+            <Header />
+            <main>
             {/* HEROSCAPE */}
             <section className="relative h-[65vh] w-full overflow-hidden">
                 {data.backdropUrl ? (
@@ -185,7 +188,7 @@ export default function ArchiveDetails() {
 
                     {data.tagline && (
                         <p className="text-amber-500 text-sm md:text-lg font-bold uppercase tracking-[0.2em] italic max-w-3xl">
-                            "{data.tagline}"
+                            &ldquo;{data.tagline}&rdquo;
                         </p>
                     )}
                 </div>
@@ -252,6 +255,7 @@ export default function ArchiveDetails() {
                 </div>
 
             </section>
-        </main>
+            </main>
+        </div>
     );
 }

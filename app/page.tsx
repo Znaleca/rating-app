@@ -1,480 +1,76 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import {
-  FaBolt,
-  FaFire,
-  FaFilm,
-  FaTv,
-  FaGamepad,
-  FaCompass,
-  FaSearch
-} from "react-icons/fa";
+import { FaCompass, FaArrowRight } from "react-icons/fa";
+import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import FeaturedCard from "@/components/FeaturedCard";
-import ReviewCard from "@/components/ReviewCard";
 import SearchBar from "@/components/SearchBar";
 
-// ─── Types & Constants ────────────────────────────────────────────────────────
-
-export type Tab = "Home" | "Browse" | "Trending";
-
-export const TAB_ICONS: Record<Tab, React.ElementType> = {
-  Home: FaBolt,
-  Browse: FaSearch,
-  Trending: FaFire,
-};
-
-export type Category = "All" | "Movies" | "Shows" | "Games";
-
-export const CATEGORY_ICON_COMPONENTS: Record<Category, React.ElementType> = {
-  All: FaBolt,
-  Movies: FaFilm,
-  Shows: FaTv,
-  Games: FaGamepad,
-};
-
-export interface Review {
-  id: string | number;
-  title: string;
-  category: Category;
-  rating: number; 
-  year: number | string;
-  genre: string;
-  reviewer: string;
-  avatar: string;
-  summary: string;
-  image: string; 
-  imageUrl?: string | null;
-  featured?: boolean;
-}
-
-interface TMDBResult {
-  id: number;
-  title?: string;
-  name?: string;
-  vote_average: number;
-  release_date?: string;
-  first_air_date?: string;
-  overview: string;
-  backdrop_path: string | null;
-}
-
-interface RAWGResult {
-  id: number;
-  name: string;
-  rating: number;
-  released: string;
-  genres: { name: string }[];
-  background_image: string | null;
-}
-
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<Tab>("Home");
-  const [activeCategory, setActiveCategory] = useState<Category>("All");
-  const [activeGenre, setActiveGenre] = useState<string>("All Genres");
-  
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [browsePage, setBrowsePage] = useState(1);
-
-  const tabs: Tab[] = ["Home", "Browse", "Trending"];
-  const categories: Category[] = ["All", "Movies", "Shows", "Games"];
-
-  // Dynamically extract unique genres from loaded reviews
-  const availableGenres = ["All Genres", ...Array.from(new Set(reviews.map((r) => r.genre).filter(Boolean)))];
-
-  const fetchPage = async (pageNum: number) => {
-    try {
-      const tmdbKey = process.env.NEXT_PUBLIC_TMDB_API_KEY;
-      const rawgKey = process.env.NEXT_PUBLIC_RAWG_API_KEY;
-
-      const tmdbMoviesReq = tmdbKey ? fetch(`https://api.themoviedb.org/3/trending/movie/day?api_key=${tmdbKey}&page=${pageNum}`)
-        .then(res => res.json())
-        .then(data => (data.results || []).map((m: TMDBResult): Review => ({
-          id: `movie-${pageNum}-${m.id}`,
-          title: m.title || "Untitled",
-          category: "Movies",
-          rating: m.vote_average || 0,
-          year: m.release_date ? m.release_date.split('-')[0] : 'N/A',
-          genre: 'Movie',
-          reviewer: 'TMDB',
-          avatar: 'TM',
-          summary: m.overview || 'Trending movie right now.',
-          image: 'movie2',
-          imageUrl: m.backdrop_path ? `https://image.tmdb.org/t/p/w780${m.backdrop_path}` : null,
-        })))
-        .catch(err => { console.error("Movie fetch error:", err); return []; }) 
-        : Promise.resolve([]);
-
-      const tmdbShowsReq = tmdbKey ? fetch(`https://api.themoviedb.org/3/trending/tv/day?api_key=${tmdbKey}&page=${pageNum}`)
-        .then(res => res.json())
-        .then(data => (data.results || []).map((m: TMDBResult): Review => ({
-          id: `show-${pageNum}-${m.id}`,
-          title: m.name || "Untitled",
-          category: "Shows",
-          rating: m.vote_average || 0,
-          year: m.first_air_date ? m.first_air_date.split('-')[0] : 'N/A',
-          genre: 'TV Show',
-          reviewer: 'TMDB',
-          avatar: 'TM',
-          summary: m.overview || 'Highly popular TV show recently discovered.',
-          image: 'show1',
-          imageUrl: m.backdrop_path ? `https://image.tmdb.org/t/p/w780${m.backdrop_path}` : null,
-        })))
-        .catch(err => { console.error("TV fetch error:", err); return []; })
-        : Promise.resolve([]);
-
-      const rawgReq = rawgKey ? fetch(`https://api.rawg.io/api/games?key=${rawgKey}&ordering=-added&page_size=10&page=${pageNum}`)
-        .then(res => res.json())
-        .then(data => (data.results || []).map((g: RAWGResult): Review => ({
-          id: `game-${pageNum}-${g.id}`,
-          title: g.name,
-          category: "Games",
-          rating: g.rating ? g.rating * 2 : 0,
-          year: g.released ? g.released.split('-')[0] : 'N/A',
-          genre: g.genres && g.genres.length > 0 ? g.genres[0].name : 'Game',
-          reviewer: 'RAWG',
-          avatar: 'RG',
-          summary: 'A trending and highly anticipated gaming experience.',
-          image: 'game1',
-          imageUrl: g.background_image || null,
-        })))
-        .catch(err => { console.error("Game fetch error:", err); return []; })
-        : Promise.resolve([]);
-
-      const [movies, shows, games] = await Promise.all([tmdbMoviesReq, tmdbShowsReq, rawgReq]);
-      
-      const all: Review[] = [...movies, ...shows, ...games];
-      all.sort(() => 0.5 - Math.random());
-      
-      return all;
-    } catch (err) {
-      console.error("Failed to load discover content", err);
-      return [];
-    }
-  };
-
-  useEffect(() => {
-    async function loadInitial() {
-      setLoading(true);
-      const initialItems = await fetchPage(1);
-      
-      // Slice for the 5 featured cards
-      const top5 = initialItems.slice(0, 5).map(r => ({ ...r, featured: true }));
-      const rest = initialItems.slice(5);
-
-      setReviews([...top5, ...rest]);
-      setLoading(false);
-    }
-    loadInitial();
-  }, []);
-
-  const handleLoadMore = async () => {
-    if (loadingMore) return;
-    setLoadingMore(true);
-    
-    const nextPage = page + 1;
-    const nextItems = await fetchPage(nextPage);
-    
-    setReviews(prev => [...prev, ...nextItems]);
-    setPage(nextPage);
-    setLoadingMore(false);
-  };
-
-  // Reset browse page when filters change
-  useEffect(() => {
-    setBrowsePage(1);
-  }, [activeCategory, activeGenre]);
-
-  const featured = reviews.filter((r) => r.featured);
-  
-  // Filtering applies primarily to Browse.
-  const filtered = reviews.filter((r) => {
-    if (r.featured) return false; // don't show featured in main feed (they sit isolated in Trending)
-    
-    // In Trending and Home, we don't apply category/genre filters
-    if (activeTab === "Trending" || activeTab === "Home") return true;
-    
-    const catMatch = activeCategory === "All" || r.category === activeCategory;
-    const genreMatch = activeGenre === "All Genres" || r.genre === activeGenre;
-    return catMatch && genreMatch;
-  });
-
-  const ITEMS_PER_PAGE = 20;
-  const totalBrowsePages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
-  const currentBrowseStart = (browsePage - 1) * ITEMS_PER_PAGE;
-  
-  const displayItems = activeTab === "Browse" 
-    ? filtered.slice(currentBrowseStart, currentBrowseStart + ITEMS_PER_PAGE)
-    : filtered;
-
   return (
-    <div className="min-h-screen bg-[#09090b] text-zinc-100 selection:bg-amber-500/30 selection:text-amber-200">
-      <Header
-        tabs={tabs}
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-      />
+    <div className="relative min-h-screen bg-[#020617] text-slate-100 selection:bg-yellow-400 selection:text-blue-950 overflow-hidden">
+      {/* Dynamic Glow Background */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full z-0 overflow-hidden">
+        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-400/10 blur-[140px] rounded-full" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-yellow-400/5 blur-[140px] rounded-full" />
+      </div>
 
-      {/* max-w-[1600px] handles the wider 5-column layout on large screens */}
-      <main className="max-w-400 mx-auto px-8 py-16">        {loading ? (
-          <div className="flex flex-col items-center justify-center py-60">
-            <div className="relative flex items-center justify-center">
-              <div className="w-24 h-24 border-2 border-zinc-800 border-t-amber-500 rounded-full animate-spin" />
-              <FaBolt className="absolute text-amber-500 animate-pulse text-2xl" />
-            </div>
-            <p className="mt-8 text-zinc-500 font-black uppercase tracking-[0.5em] text-[10px]">Initializing Blitz</p>
-          </div>
-        ) : (
-          <div className="space-y-32">
+      <Header />
+
+      <main className="relative z-10 max-w-7xl mx-auto px-6 py-20">
+        <section className="flex flex-col items-center justify-center min-h-[70vh] animate-in fade-in duration-1000">
             
-            {/* HOME VIEW: LANDING SEARCH PAGE */}
-            {activeTab === "Home" && (
-              <section className="animate-in fade-in slide-in-from-top-10 duration-1000 mb-12 flex flex-col items-center justify-center min-h-[50vh]">
-                <div className="flex flex-col items-center justify-center text-center space-y-8 pt-10 pb-8">
-                    <h1 className="text-6xl md:text-8xl font-black tracking-tighter text-white uppercase">
-                        Welcome to <span className="text-amber-500">Blitz</span>.
-                    </h1>
-                    <p className="text-zinc-500 text-sm tracking-[0.5em] font-bold uppercase mb-8">
-                        Explore the Archives
-                    </p>
-                    
-                    <div className="relative w-full max-w-xl mx-auto transform scale-110 z-50 mb-12">
-                      <SearchBar />
-                    </div>
+            {/* Status Badge */}
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-950/50 border border-blue-400/20 mb-10 backdrop-blur-md">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-400"></span>
+                </span>
+                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-blue-300">System Online // v2.0</span>
+            </div>
 
-                    <button 
-                        onClick={() => setActiveTab("Browse")}
-                        className="group relative flex items-center justify-center gap-4 bg-white text-zinc-950 font-black uppercase tracking-[0.3em] text-xs px-12 py-5 rounded-full overflow-hidden shadow-[0_0_40px_rgba(255,255,255,0.1)] hover:shadow-[0_0_60px_rgba(245,158,11,0.3)] transition-all duration-500"
-                    >
-                        <span>Start Browsing</span>
-                        <FaCompass className="text-amber-500 group-hover:rotate-45 transition-transform duration-500" size={16} />
-                        <div className="absolute inset-0 bg-linear-to-r from-transparent via-amber-500/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
-                    </button>
-                </div>
-              </section>
-            )}
-
-            {/* BROWSE VIEW */}
-            {activeTab === "Browse" && (
-              <section className="animate-in fade-in slide-in-from-top-10 duration-1000 mb-12">
-                <div className="bg-zinc-900/40 border border-zinc-800/50 rounded-4xl p-8 md:p-12 backdrop-blur-md flex flex-col gap-8 mx-auto max-w-5xl">
-                  {/* Big Search Bar */}
-                  <div className="relative w-full max-w-3xl mx-auto transform scale-110">
+            <div className="flex flex-col items-center text-center space-y-8 max-w-5xl">
+                <h1 className="text-7xl md:text-9xl font-black tracking-tighter text-white uppercase leading-none">
+                    BLI<span className="text-yellow-400">T</span>Z<span className="text-blue-400">.</span>
+                </h1>
+                
+                <p className="max-w-2xl text-slate-400 text-lg md:text-xl font-medium leading-relaxed">
+                    Access the lightning-fast archive. 
+                    <span className="text-blue-400"> Filtered.</span> 
+                    <span className="text-yellow-400"> Indexed.</span> 
+                    <span className="text-white"> Instant.</span>
+                </p>
+                
+                {/* Search Bar with Blue Glow */}
+                <div className="w-full max-w-2xl pt-4 relative group">
+                  <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 to-yellow-400 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-1000" />
+                  <div className="relative bg-slate-950 rounded-xl">
                     <SearchBar />
                   </div>
-
-                  <div className="border-t border-white/5 pt-8 flex flex-col gap-6">
-                    {/* Category Filter */}
-                    <div className="flex flex-wrap items-center gap-3">
-                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 mr-2">Media Formats</span>
-                      {categories.map((cat) => {
-                        const Icon = CATEGORY_ICON_COMPONENTS[cat];
-                        return (
-                          <button
-                            key={cat}
-                            onClick={() => setActiveCategory(cat)}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all duration-300 ${
-                              activeCategory === cat 
-                                ? "bg-amber-500 text-zinc-950 border border-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.2)]" 
-                                : "bg-zinc-950 text-zinc-400 border border-white/5 hover:border-white/20 hover:text-white"
-                            }`}
-                          >
-                            <Icon size={12} className={activeCategory === cat ? "text-zinc-950/80" : "text-zinc-600"} />
-                            {cat}
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    {/* Genre Filter */}
-                    <div className="flex flex-wrap items-center gap-4">
-                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 mr-2">Genres Map</span>
-                      <div className="flex flex-wrap gap-2">
-                          {availableGenres.map((genre) => (
-                            <button
-                              key={genre}
-                              onClick={() => setActiveGenre(genre)}
-                              className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-wider transition-all duration-300 ${
-                                activeGenre === genre
-                                  ? "bg-white text-zinc-950 shadow-[0_0_15px_rgba(255,255,255,0.2)] scale-105" 
-                                  : "bg-white/5 text-zinc-500 border border-white/5 hover:bg-white/10 hover:text-white"
-                              }`}
-                            >
-                              {genre}
-                            </button>
-                          ))}
-                      </div>
-                    </div>
-                  </div>
                 </div>
-              </section>
-            )}
 
-            {/* TRENDING VIEW: FEATURED AND STATS */}
-            {activeTab === "Trending" && (
-              <>
-                {featured.length > 0 && (
-                  <section className="animate-in fade-in slide-in-from-bottom-10 duration-1000">
-                    <div className="flex flex-col items-center mb-16 text-center">
-                      <div className="flex items-center gap-3 px-4 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 mb-6 shadow-[0_0_20px_rgba(245,158,11,0.1)]">
-                        <FaFire className="text-amber-500 text-xs animate-pulse" />
-                        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-amber-500">The Elite Five</span>
-                      </div>
-                      <h1 className="text-5xl md:text-7xl font-black tracking-tighter mb-4 text-white">
-                        Editor&apos;s <span className="text-zinc-500 italic">Picks</span>
-                      </h1>
-                    </div>
+                {/* Primary Actions */}
+                <div className="flex flex-col sm:flex-row items-center gap-8 pt-8">
+                    <Link 
+                        href="/browse"
+                        className="group relative flex items-center gap-4 bg-blue-400 text-blue-950 font-black uppercase tracking-widest text-sm px-12 py-5 rounded-sm hover:bg-yellow-400 transition-all duration-300 shadow-[0_0_30px_rgba(96,165,250,0.3)]"
+                    >
+                        <span>Start Browsing</span>
+                        <FaArrowRight className="group-hover:translate-x-2 transition-transform duration-300" />
+                    </Link>
                     
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-                      {featured.map((r) => (
-                        <FeaturedCard key={r.id} review={r} />
-                      ))}
-                    </div>
-                  </section>
-                )}
-
-                {/* STATS STRIP */}
-                <section className="bg-zinc-900/40 border border-zinc-800/50 rounded-4xl p-10 backdrop-blur-md">
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
-                    {(["Movies", "Shows", "Games"] as const).map((cat) => {
-                      const items = reviews.filter((r) => r.category === cat);
-                      const Icon = CATEGORY_ICON_COMPONENTS[cat];
-                      if (items.length === 0) return null;
-                      const avg = items.reduce((s, r) => s + r.rating, 0) / items.length;
-                      
-                      return (
-                        <div key={cat} className="flex flex-col items-center lg:items-start space-y-2">
-                          <div className="flex items-center gap-3 text-zinc-500 group-hover:text-amber-500 transition-colors">
-                            <Icon className="text-xs" />
-                            <span className="text-[10px] font-bold uppercase tracking-widest">{cat}</span>
-                          </div>
-                          <div className="flex items-baseline gap-2">
-                            <span className="text-3xl font-black text-white">{items.length}</span>
-                            <span className="text-amber-500 text-[10px] font-black uppercase italic">avg {avg.toFixed(1)}</span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </section>
-              </>
-            )}
-
-            {/* DISCOVERY GRID */}
-            {activeTab !== "Home" && (
-              <section className="animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-300">
-                <div className="flex items-end justify-between mb-12 border-b border-zinc-800 pb-8">
-                  <div>
-                    <h2 className="text-3xl font-black tracking-tighter text-white flex items-center gap-4">
-                      {activeTab === "Trending" ? <FaFire className="text-amber-500" /> : <FaCompass className="text-zinc-700" />}
-                      {activeTab === "Browse" ? "Search Results" : "Trending Worldwide"}
-                    </h2>
-                    <p className="text-zinc-500 text-xs mt-2 uppercase tracking-widest font-bold">
-                      Showing {filtered.length} curated entries
-                    </p>
-                  </div>
+                    <Link 
+                        href="/about"
+                        className="flex items-center gap-3 text-slate-500 hover:text-yellow-400 font-bold uppercase tracking-widest text-xs transition-colors group"
+                    >
+                        <FaCompass className="group-hover:rotate-90 transition-transform duration-500" />
+                        The Blueprint
+                    </Link>
                 </div>
-
-              {filtered.length === 0 ? (
-                <div className="text-center py-40 bg-zinc-900/20 rounded-4xl border border-dashed border-zinc-800">
-                  <p className="text-zinc-600 font-bold uppercase tracking-widest text-xs">No entries match your search criteria</p>
-                </div>
-              ) : (
-                <>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-8 gap-y-12">
-                    {displayItems.map((r) => (
-                      <ReviewCard key={r.id} review={r} />
-                    ))}
-                  </div>
-
-                  {/* BROWSE PAGINATION */}
-                  {activeTab === "Browse" && totalBrowsePages > 0 && (
-                    <div className="flex items-center justify-center gap-2 mt-20 pb-8">
-                      <button 
-                        onClick={() => {
-                          setBrowsePage(p => Math.max(1, p - 1));
-                          window.scrollTo({ top: 0, behavior: 'smooth' });
-                        }}
-                        disabled={browsePage === 1}
-                        className="w-10 h-10 flex items-center justify-center rounded-full bg-zinc-900 border border-zinc-800 disabled:opacity-30 hover:border-amber-500/50 transition-colors text-zinc-400 hover:text-amber-500"
-                      >
-                        &larr;
-                      </button>
-                      
-                      <div className="flex gap-1.5 items-center">
-                        {Array.from({ length: totalBrowsePages }).map((_, i) => (
-                          <button
-                            key={i}
-                            onClick={() => {
-                              setBrowsePage(i + 1);
-                              window.scrollTo({ top: 0, behavior: 'smooth' });
-                            }}
-                            className={`w-10 h-10 flex items-center justify-center rounded-full text-[10px] font-black transition-all duration-300 ${
-                              browsePage === i + 1
-                                ? "bg-amber-500 text-zinc-950 shadow-[0_0_15px_rgba(245,158,11,0.4)]"
-                                : "bg-zinc-900 border border-zinc-800 text-zinc-500 hover:border-white/20 hover:text-white"
-                            }`}
-                          >
-                            {i + 1}
-                          </button>
-                        ))}
-                      </div>
-
-                      <button 
-                        onClick={async () => {
-                          if (browsePage < totalBrowsePages) {
-                            setBrowsePage(p => p + 1);
-                            window.scrollTo({ top: 0, behavior: 'smooth' });
-                          } else {
-                            await handleLoadMore();
-                            setBrowsePage(p => p + 1);
-                            window.scrollTo({ top: 0, behavior: 'smooth' });
-                          }
-                        }}
-                        disabled={loadingMore}
-                        className="w-10 h-10 flex items-center justify-center rounded-full bg-zinc-900 border border-zinc-800 disabled:opacity-50 hover:border-amber-500/50 transition-colors text-zinc-400 hover:text-amber-500"
-                      >
-                        {loadingMore ? <div className="w-4 h-4 border border-zinc-500 border-t-amber-500 rounded-full animate-spin"/> : <>&rarr;</>}
-                      </button>
-                    </div>
-                  )}
-
-                  {/* STANDARD LOAD MORE BUTTON (TRENDING) */}
-                  {activeTab === "Trending" && (
-                    <div className="flex justify-center mt-20 pb-8">
-                      <button
-                        onClick={handleLoadMore}
-                        disabled={loadingMore}
-                        className="group relative flex items-center justify-center gap-3 bg-zinc-900 border border-zinc-800 disabled:opacity-50 text-white font-black uppercase tracking-[0.2em] text-[10px] px-8 py-4 rounded-full overflow-hidden hover:border-amber-500/50 transition-all duration-500 hover:shadow-[0_0_30px_rgba(245,158,11,0.15)]"
-                      >
-                        {loadingMore ? (
-                          <>
-                            <div className="w-3 h-3 border border-white/20 border-t-amber-500 rounded-full animate-spin" />
-                            <span className="text-zinc-500">Decrypting Archives...</span>
-                          </>
-                        ) : (
-                          <>
-                            <FaBolt className="text-amber-500 group-hover:scale-110 transition-transform duration-500" />
-                            <span>Load More Discoveries</span>
-                            <div className="absolute inset-0 bg-linear-to-r from-transparent via-amber-500/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  )}
-                </>
-              )}
-            </section>
-            )}
-
-          </div>
-        )}
+            </div>
+        </section>
       </main>
+      
       <Footer />
     </div>
   );

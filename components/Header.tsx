@@ -2,17 +2,18 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { FaSignOutAlt, FaBars, FaTimes, FaUser } from "react-icons/fa";
+import { usePathname } from "next/navigation";
+import { FaSignOutAlt, FaBars, FaTimes, FaUser, FaBolt, FaSearch, FaFire } from "react-icons/fa";
 import { createClient } from "@/lib/supabase/client";
-import { Tab, TAB_ICONS } from "../app/page";
 
-interface HeaderProps {
-    tabs: Tab[];
-    activeTab: Tab;
-    setActiveTab: (tab: Tab) => void;
-}
+const ROUTES = [
+    { name: "Home", path: "/", icon: FaBolt },
+    { name: "Browse", path: "/browse", icon: FaSearch },
+    { name: "Trending", path: "/trending", icon: FaFire },
+];
 
-export default function Header({ tabs, activeTab, setActiveTab }: HeaderProps) {
+export default function Header() {
+    const pathname = usePathname();
     const supabase = useMemo(() => createClient(), []);
     
     const [user, setUser] = useState<{ id: string; name: string; role: string } | null>(null);
@@ -75,13 +76,13 @@ export default function Header({ tabs, activeTab, setActiveTab }: HeaderProps) {
 
                 {/* Refined Desktop Nav */}
                 <nav className="hidden lg:flex items-center gap-10">
-                    {tabs.map((tab) => {
-                        const Icon = TAB_ICONS[tab];
-                        const isActive = activeTab === tab;
+                    {ROUTES.map((route) => {
+                        const Icon = route.icon;
+                        const isActive = pathname === route.path || (route.path !== "/" && pathname.startsWith(route.path));
                         return (
-                            <button
-                                key={tab}
-                                onClick={() => setActiveTab(tab)}
+                            <Link
+                                key={route.name}
+                                href={route.path}
                                 className={`group relative flex items-center gap-2.5 py-2 text-[11px] font-black uppercase tracking-[0.2em] transition-colors duration-500 ${
                                     isActive 
                                     ? "text-white" 
@@ -89,12 +90,12 @@ export default function Header({ tabs, activeTab, setActiveTab }: HeaderProps) {
                                 }`}
                             >
                                 <Icon size={14} className={`${isActive ? "text-amber-500" : "text-zinc-600 group-hover:text-amber-400"} transition-colors duration-500`} />
-                                {tab}
+                                {route.name}
                                 
                                 <span className={`absolute -bottom-1 left-0 h-0.5 bg-amber-500 transition-all duration-500 ease-out ${
                                     isActive ? "w-full" : "w-0 group-hover:w-full"
                                 }`} />
-                            </button>
+                            </Link>
                         );
                     })}
                 </nav>
@@ -164,26 +165,29 @@ export default function Header({ tabs, activeTab, setActiveTab }: HeaderProps) {
                     </div>
 
                     <nav className="mt-20 flex flex-col gap-6">
-                        {tabs.map((tab, index) => (
-                            <button
-                                key={`mob-${tab}`}
-                                onClick={() => { setActiveTab(tab); setIsMenuOpen(false); }}
+                        {ROUTES.map((route, index) => {
+                            const isActive = pathname === route.path || (route.path !== "/" && pathname.startsWith(route.path));
+                            return (
+                            <Link
+                                key={`mob-${route.name}`}
+                                href={route.path}
+                                onClick={() => setIsMenuOpen(false)}
                                 style={{ transitionDelay: `${index * 75}ms` }}
                                 className={`group flex items-center justify-between text-5xl md:text-8xl font-black uppercase tracking-tighter transition-all duration-500 ${
-                                    activeTab === tab 
+                                    isActive 
                                     ? 'text-white' 
                                     : 'text-zinc-800 hover:text-zinc-400'
                                 } ${isMenuOpen ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-12'}`}
                             >
                                 <span className="flex items-center gap-6">
                                     <span className="text-amber-500 text-sm align-middle opacity-50">{String(index + 1).padStart(2, '0')}</span>
-                                    {tab}
+                                    {route.name}
                                 </span>
-                                <span className={`text-2xl md:text-4xl text-amber-500 transition-all duration-500 ${activeTab === tab ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                                <span className={`text-2xl md:text-4xl text-amber-500 transition-all duration-500 ${isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
                                     &rarr;
                                 </span>
-                            </button>
-                        ))}
+                            </Link>
+                        )})}
                     </nav>
 
                     <div className={`mt-auto transition-all duration-700 delay-500 ${isMenuOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>

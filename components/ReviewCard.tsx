@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { FaUser, FaQuoteLeft, FaCompass } from "react-icons/fa";
-import { Review, CATEGORY_ICON_COMPONENTS } from "@/app/page";
+import { Review, CATEGORY_ICON_COMPONENTS } from "@/lib/types";
 
 const CATEGORY_COLORS: Record<string, string> = {
   Movies: "bg-amber-500",
