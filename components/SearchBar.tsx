@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
-import { FaSearch, FaSpinner, FaBook, FaFilm, FaTv, FaGamepad, FaKey, FaFire } from 'react-icons/fa';
+import Link from 'next/link';
+import { FaSearch, FaSpinner, FaFilm, FaTv, FaGamepad, FaKey, FaFire } from 'react-icons/fa';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -11,16 +12,7 @@ interface MediaResult {
     title: string;
     subtitle?: string;
     imageUrl?: string;
-    type: 'book' | 'movie' | 'tv' | 'game';
-}
-
-interface GoogleBookItem {
-    id: string;
-    volumeInfo: {
-        title: string;
-        authors?: string[];
-        imageLinks?: { smallThumbnail?: string };
-    };
+    type: 'movie' | 'tv' | 'game';
 }
 
 interface TMDBItem {
@@ -57,19 +49,6 @@ export default function SearchBar() {
                 const tmdbKey = process.env.NEXT_PUBLIC_TMDB_API_KEY;
                 const rawgKey = process.env.NEXT_PUBLIC_RAWG_API_KEY;
 
-                const fetchBooks = fetch(`https://www.googleapis.com/books/v1/volumes?q=subject:fiction&orderBy=newest&maxResults=3`)
-                    .then(res => res.json())
-                    .then(data => {
-                        if (!data.items) return [];
-                        return data.items.map((book: GoogleBookItem) => ({
-                            id: `trend-book-${book.id}`,
-                            title: book.volumeInfo.title,
-                            subtitle: book.volumeInfo.authors ? book.volumeInfo.authors.join(', ') : '',
-                            imageUrl: book.volumeInfo.imageLinks?.smallThumbnail?.replace('http:', 'https:'),
-                            type: 'book' as const
-                        }));
-                    }).catch(() => []);
-
                 const fetchTmdb = tmdbKey
                     ? fetch(`https://api.themoviedb.org/3/trending/all/day?api_key=${tmdbKey}`)
                         .then(res => res.json())
@@ -79,7 +58,7 @@ export default function SearchBar() {
                                 .filter((item: TMDBItem) => item.media_type === 'movie' || item.media_type === 'tv')
                                 .slice(0, 3)
                                 .map((item: TMDBItem) => ({
-                                    id: `trend-tmdb-${item.id}`,
+                                    id: `trend-${item.media_type}-${item.id}`,
                                     title: item.title || item.name,
                                     subtitle: (item.release_date || item.first_air_date || '').split('-')[0],
                                     imageUrl: item.poster_path ? `https://image.tmdb.org/t/p/w92${item.poster_path}` : undefined,
@@ -94,7 +73,7 @@ export default function SearchBar() {
                         .then(data => {
                             if (!data.results) return [];
                             return data.results.map((game: RAWGItem) => ({
-                                id: `trend-rawg-${game.id}`,
+                                id: `trend-game-${game.id}`,
                                 title: game.name,
                                 subtitle: game.released ? game.released.split('-')[0] : '',
                                 imageUrl: game.background_image || undefined,
@@ -103,10 +82,10 @@ export default function SearchBar() {
                         }).catch(() => [])
                     : Promise.resolve([]);
 
-                const [books, tmdbResults, games] = await Promise.all([fetchBooks, fetchTmdb, fetchRawg]);
+                const [tmdbResults, games] = await Promise.all([fetchTmdb, fetchRawg]);
 
                 if (isMounted) {
-                    const combined = [...tmdbResults, ...games, ...books].sort(() => 0.5 - Math.random()).slice(0, 6);
+                    const combined = [...tmdbResults, ...games].sort(() => 0.5 - Math.random()).slice(0, 6);
                     setTrendingResults(combined);
                 }
             } catch (error) {
@@ -136,16 +115,6 @@ export default function SearchBar() {
 
                 if (!tmdbKey || !rawgKey) setMissingApiKey(true);
 
-                const fetchBooks = fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=3`)
-                    .then(res => res.json())
-                    .then(data => (data.items || []).map((book: GoogleBookItem) => ({
-                        id: `book-${book.id}`,
-                        title: book.volumeInfo.title,
-                        subtitle: book.volumeInfo.authors ? book.volumeInfo.authors.join(', ') : '',
-                        imageUrl: book.volumeInfo.imageLinks?.smallThumbnail?.replace('http:', 'https:'),
-                        type: 'book' as const
-                    })));
-
                 const fetchTmdb = tmdbKey
                     ? fetch(`https://api.themoviedb.org/3/search/multi?api_key=${tmdbKey}&query=${encodeURIComponent(query)}&include_adult=false`)
                         .then(res => res.json())
@@ -153,7 +122,7 @@ export default function SearchBar() {
                             .filter((item: TMDBItem) => item.media_type === 'movie' || item.media_type === 'tv')
                             .slice(0, 4)
                             .map((item: TMDBItem) => ({
-                                id: `tmdb-${item.id}`,
+                                id: `search-${item.media_type}-${item.id}`,
                                 title: item.title || item.name,
                                 subtitle: (item.release_date || item.first_air_date || '').split('-')[0],
                                 imageUrl: item.poster_path ? `https://image.tmdb.org/t/p/w92${item.poster_path}` : undefined,
@@ -164,15 +133,15 @@ export default function SearchBar() {
                     ? fetch(`https://api.rawg.io/api/games?key=${rawgKey}&search=${encodeURIComponent(query)}&page_size=3`)
                         .then(res => res.json())
                         .then(data => (data.results || []).map((game: RAWGItem) => ({
-                            id: `rawg-${game.id}`,
+                            id: `search-game-${game.id}`,
                             title: game.name,
                             subtitle: game.released ? game.released.split('-')[0] : '',
                             imageUrl: game.background_image || undefined,
                             type: 'game' as const
                         }))) : Promise.resolve([]);
 
-                const [b, t, g] = await Promise.all([fetchBooks, fetchTmdb, fetchRawg]);
-                const combined = [...t, ...g, ...b].slice(0, 9);
+                const [t, g] = await Promise.all([fetchTmdb, fetchRawg]);
+                const combined = [...t, ...g].slice(0, 9);
 
                 setResults(combined);
                 if (combined.length > 0) setIsOpen(true);
@@ -228,16 +197,17 @@ export default function SearchBar() {
                     <ul className="max-h-100 overflow-y-auto p-2 scrollbar-hide">
                         {(query.trim() ? results : trendingResults).map((item) => (
                             <li key={item.id}>
-                                <button
+                                <Link
+                                    href={`/archives/${item.id}`}
                                     onClick={() => { setIsOpen(false); setQuery(''); }}
-                                    className="w-full text-left flex items-center gap-4 p-2.5 hover:bg-white/5 rounded-xl transition-all group"
+                                    className="w-full text-left flex items-center gap-4 p-2.5 hover:bg-white/5 rounded-xl transition-all group block"
                                 >
                                     <div className="relative w-10 h-14 overflow-hidden rounded-lg bg-zinc-900 border border-white/5 shrink-0">
                                         {item.imageUrl ? (
                                             <Image src={item.imageUrl} alt={item.title} fill className="object-cover transition-transform duration-500 group-hover:scale-110" sizes="40px" />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center text-zinc-700">
-                                                {item.type === 'book' ? <FaBook size={12}/> : item.type === 'movie' ? <FaFilm size={12}/> : item.type === 'game' ? <FaGamepad size={12}/> : <FaTv size={12}/>}
+                                                {item.type === 'movie' ? <FaFilm size={12}/> : item.type === 'game' ? <FaGamepad size={12}/> : <FaTv size={12}/>}
                                             </div>
                                         )}
                                     </div>
@@ -261,7 +231,7 @@ export default function SearchBar() {
                                             )}
                                         </div>
                                     </div>
-                                </button>
+                                </Link>
                             </li>
                         ))}
                     </ul>

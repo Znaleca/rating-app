@@ -4,16 +4,15 @@ import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { FaSignOutAlt, FaBars, FaTimes, FaUser } from "react-icons/fa";
 import { createClient } from "@/lib/supabase/client";
-import { Category, CATEGORY_ICON_COMPONENTS } from "../app/page";
-import SearchBar from "./SearchBar";
+import { Tab, TAB_ICONS } from "../app/page";
 
 interface HeaderProps {
-    categories: Category[];
-    activeCategory: Category;
-    setActiveCategory: (category: Category) => void;
+    tabs: Tab[];
+    activeTab: Tab;
+    setActiveTab: (tab: Tab) => void;
 }
 
-export default function Header({ categories, activeCategory, setActiveCategory }: HeaderProps) {
+export default function Header({ tabs, activeTab, setActiveTab }: HeaderProps) {
     const supabase = useMemo(() => createClient(), []);
     
     const [user, setUser] = useState<{ id: string; name: string; role: string } | null>(null);
@@ -76,13 +75,13 @@ export default function Header({ categories, activeCategory, setActiveCategory }
 
                 {/* Refined Desktop Nav */}
                 <nav className="hidden lg:flex items-center gap-10">
-                    {categories.map((cat) => {
-                        const Icon = CATEGORY_ICON_COMPONENTS[cat];
-                        const isActive = activeCategory === cat;
+                    {tabs.map((tab) => {
+                        const Icon = TAB_ICONS[tab];
+                        const isActive = activeTab === tab;
                         return (
                             <button
-                                key={cat}
-                                onClick={() => setActiveCategory(cat)}
+                                key={tab}
+                                onClick={() => setActiveTab(tab)}
                                 className={`group relative flex items-center gap-2.5 py-2 text-[11px] font-black uppercase tracking-[0.2em] transition-colors duration-500 ${
                                     isActive 
                                     ? "text-white" 
@@ -90,7 +89,7 @@ export default function Header({ categories, activeCategory, setActiveCategory }
                                 }`}
                             >
                                 <Icon size={14} className={`${isActive ? "text-amber-500" : "text-zinc-600 group-hover:text-amber-400"} transition-colors duration-500`} />
-                                {cat}
+                                {tab}
                                 
                                 <span className={`absolute -bottom-1 left-0 h-0.5 bg-amber-500 transition-all duration-500 ease-out ${
                                     isActive ? "w-full" : "w-0 group-hover:w-full"
@@ -102,10 +101,6 @@ export default function Header({ categories, activeCategory, setActiveCategory }
 
                 {/* Right Side Controls */}
                 <div className="flex items-center gap-6">
-                    {/* Search bar integration - ensure SearchBar.tsx also handles dark mode! */}
-                    <div className="hidden md:block w-48 xl:w-64 transition-all duration-700 focus-within:w-80">
-                        <SearchBar />
-                    </div>
 
                     <div className="flex items-center gap-4">
                         {loading ? (
@@ -169,22 +164,22 @@ export default function Header({ categories, activeCategory, setActiveCategory }
                     </div>
 
                     <nav className="mt-20 flex flex-col gap-6">
-                        {categories.map((cat, index) => (
+                        {tabs.map((tab, index) => (
                             <button
-                                key={`mob-${cat}`}
-                                onClick={() => { setActiveCategory(cat); setIsMenuOpen(false); }}
+                                key={`mob-${tab}`}
+                                onClick={() => { setActiveTab(tab); setIsMenuOpen(false); }}
                                 style={{ transitionDelay: `${index * 75}ms` }}
                                 className={`group flex items-center justify-between text-5xl md:text-8xl font-black uppercase tracking-tighter transition-all duration-500 ${
-                                    activeCategory === cat 
+                                    activeTab === tab 
                                     ? 'text-white' 
                                     : 'text-zinc-800 hover:text-zinc-400'
                                 } ${isMenuOpen ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-12'}`}
                             >
                                 <span className="flex items-center gap-6">
                                     <span className="text-amber-500 text-sm align-middle opacity-50">{String(index + 1).padStart(2, '0')}</span>
-                                    {cat}
+                                    {tab}
                                 </span>
-                                <span className={`text-2xl md:text-4xl text-amber-500 transition-all duration-500 ${activeCategory === cat ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                                <span className={`text-2xl md:text-4xl text-amber-500 transition-all duration-500 ${activeTab === tab ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
                                     &rarr;
                                 </span>
                             </button>

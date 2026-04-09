@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { FaUser, FaQuoteLeft } from "react-icons/fa";
 import { Review, CATEGORY_ICON_COMPONENTS } from "../app/page";
 
@@ -8,16 +9,14 @@ const CATEGORY_COLORS: Record<string, string> = {
   Movies: "bg-amber-500",
   Shows: "bg-emerald-500",
   Games: "bg-violet-500",
-  Books: "bg-blue-500",
 };
 
 export default function FeaturedCard({ review }: { review: Review }) {
   const Icon = CATEGORY_ICON_COMPONENTS[review.category];
 
   return (
-    /* Outer wrapper providing padding to shrink the card relative to the grid */
     <div className="p-4 aspect-2/3 w-full flex items-center justify-center">
-      <article className="group relative h-80 aspect-2/3 rounded-4xl overflow-hidden bg-zinc-950 shadow-2xl transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-3 hover:shadow-amber-500/20">
+      <Link href={`/archives/${review.id}`} className="group relative h-80 aspect-2/3 rounded-4xl overflow-hidden bg-zinc-950 shadow-2xl transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-3 hover:shadow-amber-500/20 block cursor-pointer">
         
         {/* Cinematic Ken Burns Image */}
         {review.imageUrl && (
@@ -96,7 +95,7 @@ export default function FeaturedCard({ review }: { review: Review }) {
         {/* Canonical border-0 and group-hover:border fix */}
         <div className="absolute inset-0 border-0 group-hover:border border-white/20 rounded-4xl transition-all duration-700 pointer-events-none" />
         <div className="absolute bottom-0 left-0 h-1 bg-linear-to-r from-transparent via-amber-400 to-transparent transition-all duration-1000 ease-in-out w-0 group-hover:w-full" />
-      </article>
+      </Link>
     </div>
   );
 }

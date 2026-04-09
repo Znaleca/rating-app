@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { FaUser, FaQuoteLeft, FaCompass } from "react-icons/fa";
 import { Review, CATEGORY_ICON_COMPONENTS } from "@/app/page";
 
@@ -17,7 +18,7 @@ export default function DiscoveryCard({ review }: { review: Review }) {
   return (
     <div className="p-2 w-full">
       {/* Updated h-[450px] to h-112.5 per Tailwind recommendation */}
-      <article className="group relative h-112.5 w-full rounded-4xl overflow-hidden bg-zinc-950 shadow-2xl transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-2 hover:shadow-amber-500/10">
+      <Link href={`/archives/${review.id}`} className="group relative h-112.5 w-full rounded-4xl overflow-hidden bg-zinc-950 shadow-2xl transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-2 hover:shadow-amber-500/10 block cursor-pointer">
         
         {review.imageUrl ? (
           <Image
@@ -94,7 +95,7 @@ export default function DiscoveryCard({ review }: { review: Review }) {
 
         <div className="absolute inset-0 border-0 group-hover:border border-white/10 rounded-4xl transition-all duration-700 pointer-events-none" />
         <div className="absolute bottom-0 left-0 h-1 bg-linear-to-r from-transparent via-amber-500 to-transparent transition-all duration-1000 w-0 group-hover:w-full opacity-60" />
-      </article>
+      </Link>
     </div>
   );
 }
