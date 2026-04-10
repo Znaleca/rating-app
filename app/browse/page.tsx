@@ -31,10 +31,22 @@ interface RAWGResult {
   background_image: string | null;
 }
 
+const SectionHeading = ({ title, subtitle, accentColor }: { title: string, subtitle: string, accentColor: string }) => (
+  <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
+    <div className="space-y-2">
+      <div className="flex items-center gap-4">
+        <div className={`h-0.5 w-12 ${accentColor.replace('bg-', 'bg-')}`} />
+        <span className="text-[10px] font-black uppercase tracking-[0.6em] text-slate-400">{subtitle}</span>
+      </div>
+      <h2 className="text-5xl md:text-7xl font-black tracking-tighter uppercase leading-none">
+        {title}
+      </h2>
+    </div>
+  </div>
+);
+
 export default function Trending() {
-  // Initializing the router instance
   const router = useRouter(); 
-  
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -130,100 +142,95 @@ export default function Trending() {
     setLoadingMore(false);
   };
 
-  const featured = reviews.slice(0, 4);
-  const trendingItems = reviews.slice(4);
+  // Sliced for 6 Spotlight items
+  const featuredList = reviews.slice(0, 6);
+  const trendingItems = reviews.slice(6);
 
   return (
-    <div className="min-h-screen bg-[#050505] text-slate-100 selection:bg-yellow-400 selection:text-black font-sans">
+    <div className="min-h-screen bg-[#050505] text-slate-100 selection:bg-yellow-400 selection:text-black font-sans overflow-x-hidden">
       <Header />
 
-      <main className="relative z-10 w-full max-w-7xl mx-auto px-6 py-20">
+      <main className="relative z-10 w-full px-6 md:px-12 py-20">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-60">
             <div className="w-16 h-16 border-2 border-slate-800 border-t-yellow-400 animate-spin" />
-            <p className="mt-8 text-slate-500 font-black uppercase tracking-[0.5em] text-[10px]">Updating Live Feed</p>
+            <p className="mt-8 text-slate-500 font-black uppercase tracking-[0.5em] text-[10px]">Accessing Database</p>
           </div>
         ) : (
           <div className="space-y-32">
 
-            {/* ⚡ SEARCH & PAGE HEADER */}
+            {/* ⚡ PAGE HEADER */}
             <div className="space-y-12">
               <div className="flex flex-col items-center text-center w-full animate-in fade-in slide-in-from-top-4 duration-700">
                 <div className="flex items-center gap-4 mb-6">
-                  <div className="h-[1px] w-8 bg-blue-400" />
-                  <span className="text-[10px] font-black uppercase tracking-[0.8em] text-slate-400">Browse</span>
-                  <div className="h-[1px] w-8 bg-yellow-400" />
+                  <div className="h-px w-8 bg-blue-400" />
+                  <span className="text-[10px] font-black uppercase tracking-[0.8em] text-slate-400">Browsing</span>
+                  <div className="h-px w-8 bg-yellow-400" />
                 </div>
-                <h1 className="text-5xl md:text-7xl font-black tracking-[-0.05em] text-white uppercase leading-[0.9]">
+                <h1 className="text-5xl md:text-8xl font-black tracking-[-0.05em] text-white uppercase leading-[0.9]">
                   EXPLORE <br className="md:hidden" />
                   <span className="text-transparent relative inline-block" style={{ WebkitTextStroke: '1.5px rgba(250, 204, 21, 0.9)' }}> MEDIA </span>
                 </h1>
               </div>
-
-              <section className="max-w-4xl mx-auto w-full space-y-6">
-                <div className="relative border border-white/5 bg-black/60 backdrop-blur-xl shadow-2xl rounded-2xl">
-                  <BrowseSearch data={reviews} onSearch={(query) => {
-                    if (query) {
-                      router.push(`/search?q=${encodeURIComponent(query)}`);
-                    }
-                  }} />
-                </div>
-              </section>
             </div>
-            
-            {/* FEATURED / HERO SECTION */}
-            <section>
-              <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
-                <div className="space-y-4">
-                  <div className="flex items-center gap-4">
-                    <div className="h-0.5 w-12 bg-blue-400" />
-                    <span className="text-[10px] font-black uppercase tracking-[0.6em] text-blue-400">Headlines</span>
-                  </div>
-                  <h2 className="text-6xl md:text-8xl font-black tracking-tighter uppercase leading-[0.8]">
-                    Featured <br />
-                  </h2>
-                </div>
-              </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 bg-white/5 p-2">
-                <div className="lg:col-span-8 group relative aspect-video lg:h-[600px] overflow-hidden bg-black">
-                    {featured[0] && (
-                        <Link href={`/archives/${featured[0].id}`} className="block h-full w-full">
-                            <img src={featured[0].imageUrl || ''} className="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:scale-105 transition-transform duration-1000" alt={featured[0].title} />
-                            <div className="absolute inset-0 border-r-4 border-blue-400/20" />
-                            <div className="absolute bottom-0 left-0 p-8 md:p-12 w-full bg-gradient-to-t from-black via-black/40 to-transparent">
-                                <div className="inline-block bg-yellow-400 text-black text-[9px] font-black uppercase px-4 py-1 mb-6 tracking-[0.2em]">
-                                    Must Watch
-                                </div>
-                                <h3 className="text-4xl md:text-7xl font-black tracking-tighter uppercase mb-6 leading-none max-w-3xl group-hover:text-blue-400 transition-colors">
-                                    {featured[0].title}
-                                </h3>
-                                <div className="flex items-center gap-6">
-                                    <div className="bg-white text-black text-[10px] font-black uppercase px-8 py-4 flex items-center gap-4 group-hover:bg-blue-400 transition-colors">
-                                        Read Analysis <FaArrowRight />
-                                    </div>
-                                </div>
-                            </div>
-                        </Link>
-                    )}
-                </div>
-
-                <div className="lg:col-span-4 flex flex-col gap-2">
-                    {featured.slice(1, 4).map((r) => (
-                        <Link key={r.id} href={`/archives/${r.id}`} className="flex-1 bg-black p-6 border border-white/5 hover:border-yellow-400/50 transition-all group relative overflow-hidden">
-                            <img src={r.imageUrl || ''} className="absolute inset-0 w-full h-full object-cover opacity-10 group-hover:opacity-20 transition-opacity" alt={r.title} />
-                            <div className="relative z-10 h-full flex flex-col justify-between">
-                                <span className="text-blue-400 text-[9px] font-black uppercase tracking-[0.3em]">{r.category}</span>
-                                <h4 className="font-black text-xl uppercase leading-tight line-clamp-2 mt-4 group-hover:text-yellow-400 transition-colors">{r.title}</h4>
-                            </div>
-                        </Link>
-                    ))}
-                </div>
+            {/* SEARCH SECTION */}
+            <section className="max-w-4xl mx-auto w-full">
+              <div className="relative border border-white/5 bg-black/60 backdrop-blur-xl shadow-2xl rounded-2xl">
+                <BrowseSearch data={reviews} onSearch={(query) => {
+                  if (query) {
+                    router.push(`/search?q=${encodeURIComponent(query)}`);
+                  }
+                }} />
               </div>
             </section>
 
+            {/* 2. SPOTLIGHT (6 IMAGES) */}
+            {featuredList.length > 0 && (
+              <section className="relative pb-16 w-full">
+                <SectionHeading title="Featured" subtitle="Blitz" accentColor="bg-yellow-400" />
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mt-10 auto-rows-[250px] md:auto-rows-[300px]">
+                  {featuredList.map((rev, index) => {
+                    // Logic for 6 items:
+                    // Item 0: Hero (8 cols, 2 rows)
+                    // Item 1: Tall side (4 cols, 2 rows)
+                    // Items 2-5: Small squares (3 cols each, 1 row)
+                    let gridPlacement = "";
+                    if (index === 0) gridPlacement = "md:col-span-8 md:row-span-2";
+                    else if (index === 1) gridPlacement = "md:col-span-4 md:row-span-2";
+                    else gridPlacement = "md:col-span-3 md:row-span-1";
+                    
+                    return (
+                      <div key={rev.id} className={`${gridPlacement} relative h-full overflow-hidden group border border-white/5 bg-zinc-900`}>
+                        <Link href={`/archives/${rev.id}`} className="block h-full w-full relative">
+                          {rev.imageUrl && (
+                            <img 
+                              src={rev.imageUrl} 
+                              alt={rev.title}
+                              className={`absolute inset-0 w-full h-full object-cover transition-all duration-1000 group-hover:scale-110 
+                                ${index === 0 ? 'opacity-80' : 'opacity-50'} group-hover:opacity-100`}
+                            />
+                          )}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
+                          
+                          <div className="absolute bottom-0 left-0 p-6 w-full">
+                            <span className="text-blue-400 text-[8px] font-black uppercase tracking-[0.3em] mb-2 block">
+                              {rev.category}
+                            </span>
+                            <h3 className={`${index === 0 ? 'text-3xl md:text-5xl' : 'text-lg md:text-xl'} font-black uppercase tracking-tighter leading-none group-hover:text-yellow-400 transition-colors line-clamp-2`}>
+                              {rev.title}
+                            </h3>
+                          </div>
+                        </Link>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+
             {/* MAIN TRENDING FEED */}
-            <section>
+            <section className="w-full">
               <div className="flex items-center gap-6 mb-16">
                 <div className="bg-yellow-400 p-4">
                    <FaFire className="text-black text-2xl" />
@@ -233,10 +240,10 @@ export default function Trending() {
                         Active Stream
                     </h2>
                 </div>
-                <div className="flex-1 h-0.5 bg-white/5 hidden md:block" />
+                <div className="flex-1 h-px bg-white/10 hidden md:block" />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-16">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-x-6 gap-y-12">
                 {trendingItems.map((r) => (
                   <ReviewCard key={r.id} review={r} />
                 ))}
@@ -248,7 +255,7 @@ export default function Trending() {
                   disabled={loadingMore}
                   className="group relative flex items-center gap-12 bg-transparent border-2 border-white text-white font-black uppercase tracking-widest text-xs px-16 py-8 hover:bg-white hover:text-black transition-all duration-300"
                 >
-                  <span className="relative z-10">{loadingMore ? "Accessing Database..." : "Load More Records"}</span>
+                  <span className="relative z-10">{loadingMore ? "UPDATING..." : "LOAD MORE RECORDS"}</span>
                   <FaBolt className={loadingMore ? "animate-spin" : "group-hover:text-yellow-400 relative z-10"} />
                   <div className="absolute -top-1 -right-1 w-2 h-2 bg-yellow-400" />
                   <div className="absolute -bottom-1 -left-1 w-2 h-2 bg-blue-400" />

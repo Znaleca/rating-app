@@ -7,27 +7,38 @@ export default function Footer() {
     const currentYear = new Date().getFullYear();
 
     return (
-        <footer className="w-full bg-black border-t border-white/5 mt-32">
-            <div className="max-w-[1400px] mx-auto px-8 py-20">
+        <footer className="w-full bg-black border-t border-white/5 mt-32 relative overflow-hidden">
+            {/* Background Decorative Element - Matches Search Page Grid */}
+            <div className="absolute inset-0 opacity-[0.02] pointer-events-none" 
+                 style={{ backgroundImage: `linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)`, backgroundSize: '100px 100px' }} />
+            
+            <div className="w-full px-6 md:px-12 lg:px-20 py-24 relative z-10">
                 <div className="flex flex-col lg:flex-row justify-between items-start gap-16">
                     
-                    {/* Brand Section - Matches Header Logo */}
+                    {/* Brand Section */}
                     <div className="space-y-8">
-                        <Link href="/" className="group">
-                            <h2 className="text-4xl font-black tracking-tighter text-white uppercase">
+                        <Link href="/" className="group inline-block">
+                            <h2 className="text-5xl md:text-6xl font-black tracking-tighter text-white uppercase leading-none">
                                 BLI<span className="text-yellow-400">T</span>Z
-                                <span className="text-blue-500 group-hover:translate-x-1 inline-block transition-transform duration-500">.</span>
+                                <span className="text-blue-500 group-hover:translate-x-2 inline-block transition-transform duration-500">.</span>
                             </h2>
                         </Link>
-                        <p className="text-slate-500 text-[10px] max-w-sm font-black uppercase tracking-[0.2em] leading-loose">
-                            The definitive archive for <span className="text-slate-300">cinematic</span> and <span className="text-slate-300">interactive</span> media.
-                        </p>
+                        <div className="space-y-4">
+                            <p className="text-slate-500 text-[11px] max-w-md font-black uppercase tracking-[0.3em] leading-relaxed">
+                                The definitive global archive for <span className="text-white">cinematic</span> and <span className="text-white">interactive</span> media indexes. 
+                                Distributed globally via <span className="text-blue-400">Blitz Network.</span>
+                            </p>
+                            <div className="flex items-center gap-4">
+                                <div className="h-[1px] w-8 bg-blue-500" />
+                                <span className="text-[9px] font-black text-slate-600 uppercase tracking-[0.5em]">System Status: Operational</span>
+                            </div>
+                        </div>
                     </div>
 
-                    {/* Social/Connect Section - Matches Header Icon Styles */}
-                    <div className="flex flex-col gap-8">
-                        <h3 className="font-black text-[10px] uppercase tracking-[0.4em] text-blue-500/80">Connect with the Archive</h3>
-                        <div className="flex items-center gap-4">
+                    {/* Social/Connect Section */}
+                    <div className="flex flex-col items-start lg:items-end gap-8 w-full lg:w-auto">
+                        <h3 className="font-black text-[11px] uppercase tracking-[0.5em] text-blue-500/80">Connect / Social Index</h3>
+                        <div className="flex flex-wrap items-center gap-4">
                             {[
                                 { Icon: FaFacebookF, href: "#" },
                                 { Icon: FaTwitter, href: "#" },
@@ -37,35 +48,44 @@ export default function Footer() {
                                 <a 
                                     key={idx} 
                                     href={href} 
-                                    className="group bg-slate-900/50 border border-white/5 p-4 rounded-xl transition-all duration-500 hover:border-yellow-400/30 hover:-translate-y-2"
+                                    className="group bg-white/[0.02] border border-white/5 p-5 rounded-none transition-all duration-500 hover:border-yellow-400/40 hover:-translate-y-2 relative"
                                 >
-                                    <Icon className="text-slate-500 group-hover:text-yellow-400 transition-colors" size={18} />
+                                    {/* Corner Accents for Icons */}
+                                    <div className="absolute top-0 right-0 w-1 h-1 bg-yellow-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    <Icon className="text-slate-500 group-hover:text-yellow-400 transition-colors" size={20} />
                                 </a>
                             ))}
                         </div>
                     </div>
                 </div>
 
-                {/* Bottom Bar - Matches Header Nav Sub-text */}
-                <div className="mt-24 pt-10 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-8 text-center md:text-left">
-                    <p className="text-slate-600 text-[9px] font-black uppercase tracking-[0.3em]">
-                        © {currentYear} <span className="text-slate-500">Blitz Media Group International.</span>
-                    </p>
+                {/* Full Width Bottom Bar */}
+                <div className="mt-32 pt-12 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-12">
+                    <div className="flex flex-col md:flex-row items-center gap-8">
+                        <p className="text-slate-600 text-[10px] font-black uppercase tracking-[0.4em]">
+                            © {currentYear} <span className="text-slate-400">Blitz Media Group International Ltd.</span>
+                        </p>
+                        <div className="hidden md:block h-4 w-[1px] bg-white/10" />
+                        <span className="text-slate-700 text-[9px] font-black uppercase tracking-[0.2em]">Build v3.4.0_Stable</span>
+                    </div>
                     
-                    <nav className="flex gap-12">
-                        {["Privacy Policy", "Terms", "Cookies"].map((item) => (
+                    <nav className="flex flex-wrap justify-center gap-10">
+                        {["Privacy Policy", "Terms of Service", "Cookie Archive", "Data Rights"].map((item) => (
                             <a 
                                 key={item} 
                                 href="#" 
-                                className="relative group text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] transition-colors hover:text-white"
+                                className="relative group text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] transition-colors hover:text-white"
                             >
                                 {item}
-                                <span className="absolute -bottom-1 left-0 h-[1px] w-0 bg-blue-400 transition-all duration-500 group-hover:w-full" />
+                                <span className="absolute -bottom-2 left-0 h-[2px] w-0 bg-yellow-400 transition-all duration-500 group-hover:w-full" />
                             </a>
                         ))}
                     </nav>
                 </div>
             </div>
+
+            {/* Bottom Edge Scanning Line */}
+            <div className="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-blue-500/50 to-transparent animate-pulse" />
         </footer>
     );
 }

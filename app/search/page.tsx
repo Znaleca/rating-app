@@ -2,14 +2,19 @@
 
 import { Suspense, useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
-import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
+import { FaChevronLeft, FaChevronRight, FaBolt } from "react-icons/fa";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ReviewCard from "@/components/ReviewCard";
 import BrowseSearch from "@/components/BrowseSearch";
 import { Category, CATEGORY_ICON_COMPONENTS, Review } from "@/lib/types";
 
-// --- API Interfaces to fix type errors ---
+// --- TMDB Genre Map ---
+const TMDB_GENRES: Record<number, string> = {
+  28: "Action", 12: "Adventure", 16: "Animation", 35: "Comedy", 80: "Crime", 99: "Documentary", 18: "Drama", 10751: "Family", 14: "Fantasy", 36: "History", 27: "Horror", 10402: "Music", 9648: "Mystery", 10749: "Romance", 878: "Sci-Fi", 10770: "TV Movie", 53: "Thriller", 10752: "War", 37: "Western",
+  10759: "Action & Adventure", 10762: "Kids", 10763: "News", 10764: "Reality", 10765: "Sci-Fi & Fantasy", 10766: "Soap", 10767: "Talk", 10768: "War & Politics"
+};
+
 interface TMDBItem {
   id: number;
   title?: string;
@@ -19,6 +24,7 @@ interface TMDBItem {
   first_air_date?: string;
   backdrop_path: string | null;
   overview: string;
+  genre_ids?: number[];
 }
 
 interface RAWGItem {
@@ -34,43 +40,62 @@ function SearchContent() {
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get("q") || "";
 
+  const categories: Category[] = ["All", "Movies", "Shows", "Games"];
+
   const [activeCategory, setActiveCategory] = useState<Category>("All");
   const [activeGenre, setActiveGenre] = useState<string>("All Genres");
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [browsePage, setBrowsePage] = useState(1);
+  const [trendingPage, setTrendingPage] = useState(1);
+  const [gameGenres, setGameGenres] = useState<string[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
 
-  const categories: Category[] = ["All", "Movies", "Shows", "Games"];
+  useEffect(() => {
+    const fetchGameGenres = async () => {
+      const rawgKey = process.env.NEXT_PUBLIC_RAWG_API_KEY;
+      if (!rawgKey) return;
+      try {
+        const res = await fetch(`https://api.rawg.io/api/genres?key=${rawgKey}`);
+        const data = await res.json();
+        setGameGenres(data.results.map((g: any) => g.name));
+      } catch (err) {
+        console.error("Failed to fetch game genres", err);
+      }
+    };
+    fetchGameGenres();
+  }, []);
 
-  const fetchTrending = async (): Promise<Review[]> => {
+  const fetchTrending = async (page: number): Promise<Review[]> => {
     try {
       const tmdbKey = process.env.NEXT_PUBLIC_TMDB_API_KEY;
       const rawgKey = process.env.NEXT_PUBLIC_RAWG_API_KEY;
       const currentYear = new Date().getFullYear();
 
-      const tmdbMoviesReq = tmdbKey ? fetch(`https://api.themoviedb.org/3/discover/movie?api_key=${tmdbKey}&primary_release_year=${currentYear}&sort_by=popularity.desc&page=1`).then(res => res.json()).then(data => (data.results || []).map((m: TMDBItem) => ({
+      const tmdbMoviesReq = tmdbKey ? fetch(`https://api.themoviedb.org/3/discover/movie?api_key=${tmdbKey}&primary_release_year=${currentYear}&sort_by=popularity.desc&page=${page}`).then(res => res.json()).then(data => (data.results || []).map((m: TMDBItem) => ({
           id: `movie-${m.id}`,
           title: m.title || "Untitled",
           category: "Movies" as Category,
           rating: m.vote_average || 0,
           year: m.release_date ? m.release_date.split('-')[0] : 'N/A',
-          genre: 'Movie',
+          genre: m.genre_ids && m.genre_ids.length > 0 ? TMDB_GENRES[m.genre_ids[0]] : 'Movie',
           imageUrl: m.backdrop_path ? `https://image.tmdb.org/t/p/w1280${m.backdrop_path}` : null,
           summary: m.overview,
         }))) : Promise.resolve([]);
 
-      const tmdbShowsReq = tmdbKey ? fetch(`https://api.themoviedb.org/3/discover/tv?api_key=${tmdbKey}&first_air_date_year=${currentYear}&sort_by=popularity.desc&page=1`).then(res => res.json()).then(data => (data.results || []).map((m: TMDBItem) => ({
+      const tmdbShowsReq = tmdbKey ? fetch(`https://api.themoviedb.org/3/discover/tv?api_key=${tmdbKey}&first_air_date_year=${currentYear}&sort_by=popularity.desc&page=${page}`).then(res => res.json()).then(data => (data.results || []).map((m: TMDBItem) => ({
           id: `show-${m.id}`,
           title: m.name || "Untitled",
           category: "Shows" as Category,
           rating: m.vote_average || 0,
           year: m.first_air_date ? m.first_air_date.split('-')[0] : 'N/A',
-          genre: 'TV Show',
+          genre: m.genre_ids && m.genre_ids.length > 0 ? TMDB_GENRES[m.genre_ids[0]] : 'TV Show',
           imageUrl: m.backdrop_path ? `https://image.tmdb.org/t/p/w1280${m.backdrop_path}` : null,
           summary: m.overview,
         }))) : Promise.resolve([]);
 
-      const rawgReq = rawgKey ? fetch(`https://api.rawg.io/api/games?key=${rawgKey}&dates=${currentYear}-01-01,${currentYear}-12-31&ordering=-added&page_size=10&page=1`).then(res => res.json()).then(data => (data.results || []).map((g: RAWGItem) => ({
+      const rawgReq = rawgKey ? fetch(`https://api.rawg.io/api/games?key=${rawgKey}&dates=${currentYear}-01-01,${currentYear}-12-31&ordering=-added&page_size=12&page=${page}`).then(res => res.json()).then(data => (data.results || []).map((g: RAWGItem) => ({
           id: `game-${g.id}`,
           title: g.name,
           category: "Games" as Category,
@@ -91,12 +116,18 @@ function SearchContent() {
   const performGlobalSearch = useCallback(async (query: string) => {
     setLoading(true);
     if (!query) {
-      const initial = await fetchTrending();
-      setReviews(initial);
+      setIsSearching(false);
+      setTrendingPage(1);
+      const initial = await fetchTrending(1);
+      // Deduplicate in case of duplicate results
+      const uniqueMap = new Map();
+      initial.forEach(item => uniqueMap.set(item.id, item));
+      setReviews(Array.from(uniqueMap.values()));
       setLoading(false);
       return;
     }
 
+    setIsSearching(true);
     try {
       const tmdbKey = process.env.NEXT_PUBLIC_TMDB_API_KEY;
       const rawgKey = process.env.NEXT_PUBLIC_RAWG_API_KEY;
@@ -105,7 +136,8 @@ function SearchContent() {
         .then(res => res.json()).then(data => (data.results || []).map((m: TMDBItem) => ({
             id: `movie-${m.id}`,
             title: m.title || "Untitled", category: "Movies" as Category, rating: m.vote_average,
-            year: m.release_date?.split('-')[0] || 'N/A', genre: 'Movie',
+            year: m.release_date?.split('-')[0] || 'N/A', 
+            genre: m.genre_ids && m.genre_ids.length > 0 ? TMDB_GENRES[m.genre_ids[0]] : 'Movie',
             imageUrl: m.backdrop_path ? `https://image.tmdb.org/t/p/w1280${m.backdrop_path}` : null,
             summary: m.overview
         })));
@@ -114,7 +146,8 @@ function SearchContent() {
         .then(res => res.json()).then(data => (data.results || []).map((m: TMDBItem) => ({
             id: `show-${m.id}`,
             title: m.name || "Untitled", category: "Shows" as Category, rating: m.vote_average,
-            year: m.first_air_date?.split('-')[0] || 'N/A', genre: 'TV Show',
+            year: m.first_air_date?.split('-')[0] || 'N/A', 
+            genre: m.genre_ids && m.genre_ids.length > 0 ? TMDB_GENRES[m.genre_ids[0]] : 'TV Show',
             imageUrl: m.backdrop_path ? `https://image.tmdb.org/t/p/w1280${m.backdrop_path}` : null,
             summary: m.overview
         })));
@@ -124,11 +157,15 @@ function SearchContent() {
             id: `game-${g.id}`,
             title: g.name, category: "Games" as Category, rating: g.rating * 2,
             year: g.released?.split('-')[0] || 'N/A', genre: g.genres?.[0]?.name || 'Game',
-            imageUrl: g.background_image, summary: 'Search result.'
+            imageUrl: g.background_image || null, summary: 'Search result.'
         })));
 
       const results = await Promise.all([movieSearch, showSearch, gameSearch]);
-      setReviews(results.flat());
+      const combined = results.flat();
+      // Deduplicate by ID
+      const uniqueMap = new Map();
+      combined.forEach(item => uniqueMap.set(item.id, item));
+      setReviews(Array.from(uniqueMap.values()));
     } catch (err) {
       console.error("Search failed", err);
     } finally {
@@ -136,11 +173,36 @@ function SearchContent() {
     }
   }, []);
 
+  const handleLoadMore = async () => {
+    if (loadingMore) return;
+    setLoadingMore(true);
+    const nextPage = trendingPage + 1;
+    const moreData = await fetchTrending(nextPage);
+
+    setReviews(prev => {
+      const combined = [...prev, ...moreData];
+      // FIX: Use a Map to ensure unique IDs
+      const uniqueMap = new Map();
+      combined.forEach(item => uniqueMap.set(item.id, item));
+      return Array.from(uniqueMap.values());
+    });
+
+    setTrendingPage(nextPage);
+    setLoadingMore(false);
+  };
+
   useEffect(() => {
     performGlobalSearch(initialQuery);
   }, [initialQuery, performGlobalSearch]);
 
-  const availableGenres = ["All Genres", ...Array.from(new Set(reviews.map((r) => r.genre).filter(Boolean)))];
+  const availableGenres = [
+    "All Genres", 
+    ...Array.from(new Set([
+        ...Object.values(TMDB_GENRES),
+        ...gameGenres,
+        ...reviews.map(r => r.genre)
+    ])).filter(Boolean).sort()
+  ];
 
   const filtered = reviews.filter((r) => {
     const catMatch = activeCategory === "All" || r.category === activeCategory;
@@ -148,108 +210,120 @@ function SearchContent() {
     return catMatch && genreMatch;
   });
 
-  const ITEMS_PER_PAGE = 16;
+  const ITEMS_PER_PAGE = 18;
   const totalBrowsePages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
-  const displayItems = filtered.slice((browsePage - 1) * ITEMS_PER_PAGE, browsePage * ITEMS_PER_PAGE);
+  const displayItems = isSearching 
+    ? filtered.slice((browsePage - 1) * ITEMS_PER_PAGE, browsePage * ITEMS_PER_PAGE)
+    : filtered;
 
   return (
-    <div className="flex flex-col gap-y-20">
+    <div className="flex flex-col gap-y-24 w-full">
       <div className="space-y-16">
-        {/* Updated Title for Deep Dark Theme */}
         <div className="flex flex-col items-center text-center w-full animate-in fade-in slide-in-from-top-4 duration-700">
-          <div className="flex items-center gap-4 mb-6">
-            <div className="h-0.5 w-12 bg-blue-400" />
-            <span className="text-[10px] font-black uppercase tracking-[0.5em] text-blue-400">Database Search</span>
-            <div className="h-0.5 w-12 bg-yellow-400" />
+          <div className="flex items-center gap-6 mb-6">
+            <div className="h-0.5 w-16 bg-blue-400" />
+            <span className="text-[12px] font-black uppercase tracking-[0.8em] text-slate-400">Database Search</span>
+            <div className="h-0.5 w-16 bg-yellow-400" />
           </div>
-          <h1 className="text-6xl md:text-8xl font-black tracking-tighter text-white uppercase leading-none">
+          <h1 className="text-7xl md:text-9xl lg:text-[11rem] font-black tracking-tighter text-white uppercase leading-[0.8]">
             {activeCategory === "All" ? "GLOBAL" : activeCategory.toUpperCase()} <br />
             <span className="text-transparent" style={{ WebkitTextStroke: '2px #facc15' }}>INDEX</span>
           </h1>
         </div>
 
-        <section className="max-w-6xl mx-auto w-full space-y-4">
-          <div className="relative border-2 border-white/5 bg-black p-1 focus-within:border-blue-400 transition-colors">
+        <section className="max-w-7xl mx-auto w-full space-y-8 px-4">
+          <div className="relative border-2 border-white/5 bg-black p-1 focus-within:border-blue-400 transition-colors shadow-2xl">
             <BrowseSearch initialQuery={initialQuery} data={reviews} onSearch={(query) => {
               performGlobalSearch(query);
               setBrowsePage(1);
             }} />
           </div>
           
-          {/* Filtering Dock - Updated to Deep Dark */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 border border-white/10 bg-white/5 overflow-hidden">
-            <div className="lg:col-span-8 flex flex-wrap bg-black/40">
+          <div className="grid grid-cols-1 lg:grid-cols-12 border border-white/10 bg-black/40 backdrop-blur-md overflow-hidden">
+            <div className="lg:col-span-8 flex flex-wrap">
               {categories.map((cat) => {
                 const Icon = CATEGORY_ICON_COMPONENTS[cat];
                 const isActive = activeCategory === cat;
                 return (
                   <button key={cat} onClick={() => { setActiveCategory(cat); setBrowsePage(1); }}
-                    className={`flex-1 min-w-25 flex flex-col items-center justify-center gap-3 py-6 transition-all border-r border-white/5 relative group ${
-                      isActive ? "text-white" : "text-slate-500 hover:text-white hover:bg-white/5"
+                    className={`flex-1 min-w-[120px] flex flex-col items-center justify-center gap-4 py-8 transition-all border-r border-white/5 relative group ${
+                      isActive ? "text-white bg-white/5" : "text-slate-500 hover:text-white hover:bg-white/5"
                     }`}
                   >
                     {isActive && <div className="absolute top-0 left-0 w-full h-1 bg-blue-400" />}
-                    <Icon size={isActive ? 20 : 16} className={isActive ? "text-blue-400" : ""} />
-                    <span className="text-[10px] font-black uppercase tracking-widest">{cat}</span>
+                    <Icon size={isActive ? 24 : 20} className={isActive ? "text-blue-400" : ""} />
+                    <span className="text-[11px] font-black uppercase tracking-widest">{cat}</span>
                   </button>
                 );
               })}
             </div>
 
-            <div className="lg:col-span-4 bg-black/60 p-4 flex flex-col justify-center border-t lg:border-t-0 lg:border-l border-white/10">
-              <label className="text-[8px] font-black text-blue-400 uppercase tracking-widest mb-1">Filter by Genre</label>
+            <div className="lg:col-span-4 bg-black/60 p-6 flex flex-col justify-center border-t lg:border-t-0 lg:border-l border-white/10">
+              <label className="text-[9px] font-black text-blue-400 uppercase tracking-widest mb-2">Filter by Genre</label>
               <div className="relative">
                 <select value={activeGenre} onChange={(e) => { setActiveGenre(e.target.value); setBrowsePage(1); }}
-                  className="w-full bg-transparent text-white text-xs font-black uppercase tracking-widest py-2 focus:outline-none appearance-none cursor-pointer"
+                  className="w-full bg-transparent text-white text-sm font-black uppercase tracking-widest py-2 focus:outline-none appearance-none cursor-pointer"
                 >
                   {availableGenres.map(g => <option key={g} value={g} className="bg-black">{g}</option>)}
                 </select>
-                <FaChevronRight className="absolute right-0 top-1/2 -translate-y-1/2 text-yellow-400 rotate-90" size={10} />
+                <FaChevronRight className="absolute right-0 top-1/2 -translate-y-1/2 text-yellow-400 rotate-90" size={12} />
               </div>
             </div>
-          </div>
-
-          <div className="flex items-center gap-4 px-2">
-            <div className="h-2 w-2 bg-yellow-400" />
-            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
-              Found <span className="text-white">{filtered.length}</span> Records in {activeCategory}
-            </p>
           </div>
         </section>
       </div>
 
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-40">
-          <div className="w-12 h-12 border-2 border-white/10 border-t-yellow-400 border-l-blue-400 animate-spin" />
-          <p className="mt-6 text-[10px] font-black uppercase tracking-[0.4em] text-slate-500">Querying Archive...</p>
+        <div className="flex flex-col items-center justify-center py-60">
+          <div className="w-16 h-16 border-2 border-white/10 border-t-yellow-400 border-l-blue-400 animate-spin" />
+          <p className="mt-8 text-[11px] font-black uppercase tracking-[0.6em] text-slate-500">Querying Archive Data...</p>
         </div>
       ) : (
-        <section className="animate-in fade-in duration-500 pb-20">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+        <section className="animate-in fade-in duration-700 pb-32 w-full">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-x-8 gap-y-16">
             {displayItems.length > 0 ? (
               displayItems.map((r) => <ReviewCard key={r.id} review={r} />)
             ) : (
-              <p className="col-span-full text-center text-slate-500 py-20 font-black uppercase tracking-widest border-2 border-dashed border-white/5">No matching records found.</p>
+              <div className="col-span-full text-center py-40 border-2 border-dashed border-white/5 bg-white/[0.01]">
+                 <p className="text-slate-500 font-black uppercase tracking-[0.5em] text-sm">Zero results found in database</p>
+              </div>
             )}
           </div>
           
-          {displayItems.length > 0 && (
-             <div className="flex items-center justify-center gap-4 mt-20">
-              <button onClick={() => setBrowsePage(p => Math.max(1, p - 1))} disabled={browsePage === 1} 
-                className="p-4 border border-white/10 hover:border-blue-400 hover:text-blue-400 disabled:opacity-20 transition-all bg-black/20">
-                <FaChevronLeft size={14} />
+          <div className="flex items-center justify-center mt-32">
+            {!isSearching ? (
+              <button
+                onClick={handleLoadMore}
+                disabled={loadingMore}
+                className="group relative flex items-center gap-8 bg-transparent border-2 border-white text-white font-black uppercase tracking-widest text-xs px-12 py-6 hover:bg-white hover:text-black transition-all duration-300 disabled:opacity-50"
+              >
+                <span className="relative z-10">{loadingMore ? "RETRIEVING DATA..." : "LOAD MORE RECORDS"}</span>
+                <FaBolt className={loadingMore ? "animate-spin text-yellow-400" : "group-hover:text-yellow-400 relative z-10"} />
+                <div className="absolute -top-1 -right-1 w-2 h-2 bg-yellow-400" />
+                <div className="absolute -bottom-1 -left-1 w-2 h-2 bg-blue-400" />
               </button>
-              <div className="bg-white/5 px-8 py-4 border border-white/10">
-                <span className="text-[10px] font-black text-white uppercase tracking-[0.3em]">
-                  PAGE {browsePage} <span className="text-slate-500 mx-2">/</span> {totalBrowsePages || 1}
-                </span>
-              </div>
-              <button onClick={() => setBrowsePage(p => Math.min(totalBrowsePages, p + 1))} disabled={browsePage >= totalBrowsePages}
-                className="p-4 border border-white/10 hover:border-yellow-400 hover:text-yellow-400 disabled:opacity-20 transition-all bg-black/20">
-                <FaChevronRight size={14} />
-              </button>
-            </div>
-          )}
+            ) : (
+              displayItems.length > 0 && (
+                <div className="flex items-center gap-6">
+                  <button onClick={() => { setBrowsePage(p => Math.max(1, p - 1)); window.scrollTo({top: 0, behavior: 'smooth'}); }} disabled={browsePage === 1} 
+                    className="p-6 border border-white/10 hover:border-blue-400 hover:text-blue-400 disabled:opacity-10 transition-all bg-black group relative">
+                    <FaChevronLeft size={16} />
+                  </button>
+
+                  <div className="bg-white/5 px-12 py-5 border border-white/10 backdrop-blur-sm">
+                    <span className="text-[12px] font-black text-white uppercase tracking-[0.5em]">
+                      PAGE {browsePage} <span className="text-slate-500 mx-4 opacity-30">|</span> {totalBrowsePages || 1}
+                    </span>
+                  </div>
+
+                  <button onClick={() => { setBrowsePage(p => Math.min(totalBrowsePages, p + 1)); window.scrollTo({top: 0, behavior: 'smooth'}); }} disabled={browsePage >= totalBrowsePages}
+                    className="p-6 border border-white/10 hover:border-yellow-400 hover:text-yellow-400 disabled:opacity-10 transition-all bg-black group relative">
+                    <FaChevronRight size={16} />
+                  </button>
+                </div>
+              )
+            )}
+          </div>
         </section>
       )}
     </div>
@@ -258,19 +332,17 @@ function SearchContent() {
 
 export default function Search() {
   return (
-    <div className="relative min-h-screen bg-[#050505] text-slate-100 selection:bg-yellow-400 selection:text-black font-sans">
-      {/* Structural Grid - Deep Dark */}
-      <div className="fixed inset-0 z-0 opacity-[0.02] pointer-events-none" 
-           style={{ backgroundImage: `linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)`, backgroundSize: '80px 80px' }} />
+    <div className="relative min-h-screen bg-[#050505] text-slate-100 selection:bg-yellow-400 selection:text-black font-sans overflow-x-hidden">
+      <div className="fixed inset-0 z-0 opacity-[0.03] pointer-events-none" 
+           style={{ backgroundImage: `linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)`, backgroundSize: '100px 100px' }} />
+      <div className="fixed inset-0 z-0 pointer-events-none bg-[radial-gradient(circle_at_50%_0%,_rgba(30,58,138,0.05)_0%,_transparent_50%)]" />
 
       <Header />
-
-      <main className="relative z-10 isolate max-w-7xl mx-auto px-6 py-12 pt-24">
-        <Suspense fallback={<div className="py-60 text-center uppercase tracking-widest font-black text-slate-500">Initializing Archive...</div>}>
+      <main className="relative z-10 isolate w-full px-6 md:px-12 lg:px-20 py-12 pt-32">
+        <Suspense fallback={<div className="py-60 text-center uppercase tracking-widest font-black text-slate-500">Loading Index...</div>}>
           <SearchContent />
         </Suspense>
       </main>
-      
       <Footer />
     </div>
   );
