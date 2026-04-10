@@ -1,25 +1,26 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { FaBolt, FaFire, FaNewspaper } from "react-icons/fa";
+import { useState, useEffect, useMemo } from "react";
+import { FaFilm, FaTv, FaGamepad, FaStar } from "react-icons/fa";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ReviewCard from "@/components/ReviewCard";
+import FeaturedCard from "@/components/FeaturedCard"; 
 import { Review } from "@/lib/types";
 
-// Types for API Results
-interface TMDBResult {
+// --- Types for API Responses ---
+interface TMDBItem {
   id: number;
   title?: string;
   name?: string;
   vote_average: number;
   release_date?: string;
   first_air_date?: string;
-  overview: string;
   backdrop_path: string | null;
+  overview: string;
 }
 
-interface RAWGResult {
+interface RAWGItem {
   id: number;
   name: string;
   rating: number;
@@ -28,70 +29,58 @@ interface RAWGResult {
   background_image: string | null;
 }
 
-export default function Trending() {
+export default function Browse() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [loadingMore, setLoadingMore] = useState(false);
 
-  const fetchPage = async (pageNum: number) => {
+  const fetchPage = async (pageNum: number): Promise<Review[]> => {
     try {
       const tmdbKey = process.env.NEXT_PUBLIC_TMDB_API_KEY;
       const rawgKey = process.env.NEXT_PUBLIC_RAWG_API_KEY;
+      const currentYear = new Date().getFullYear();
 
-      const tmdbMoviesReq = tmdbKey ? fetch(`https://api.themoviedb.org/3/trending/movie/day?api_key=${tmdbKey}&page=${pageNum}`)
+      const tmdbMoviesReq = tmdbKey ? fetch(`https://api.themoviedb.org/3/discover/movie?api_key=${tmdbKey}&primary_release_year=${currentYear}&sort_by=popularity.desc&page=${pageNum}`)
         .then(res => res.json())
-        .then(data => (data.results || []).map((m: TMDBResult): Review => ({
-          id: `movie-${pageNum}-${m.id}`,
+        .then(data => (data.results || []).map((m: TMDBItem) => ({
+          id: `movie-${m.id}`,
           title: m.title || "Untitled",
           category: "Movies",
           rating: m.vote_average || 0,
           year: m.release_date ? m.release_date.split('-')[0] : 'N/A',
           genre: 'Movie',
-          reviewer: 'TMDB',
-          avatar: 'TM',
-          summary: m.overview || 'Trending movie right now.',
-          image: 'movie-placeholder', // Added to satisfy TS
-          imageUrl: m.backdrop_path ? `https://image.tmdb.org/t/p/w780${m.backdrop_path}` : null,
+          imageUrl: m.backdrop_path ? `https://image.tmdb.org/t/p/w1280${m.backdrop_path}` : null,
+          summary: m.overview,
         }))) : Promise.resolve([]);
 
-      const tmdbShowsReq = tmdbKey ? fetch(`https://api.themoviedb.org/3/trending/tv/day?api_key=${tmdbKey}&page=${pageNum}`)
+      const tmdbShowsReq = tmdbKey ? fetch(`https://api.themoviedb.org/3/discover/tv?api_key=${tmdbKey}&first_air_date_year=${currentYear}&sort_by=popularity.desc&page=${pageNum}`)
         .then(res => res.json())
-        .then(data => (data.results || []).map((m: TMDBResult): Review => ({
-          id: `show-${pageNum}-${m.id}`,
+        .then(data => (data.results || []).map((m: TMDBItem) => ({
+          id: `show-${m.id}`,
           title: m.name || "Untitled",
           category: "Shows",
           rating: m.vote_average || 0,
           year: m.first_air_date ? m.first_air_date.split('-')[0] : 'N/A',
           genre: 'TV Show',
-          reviewer: 'TMDB',
-          avatar: 'TM',
-          summary: m.overview || 'Highly popular TV show.',
-          image: 'show-placeholder', // Added to satisfy TS
-          imageUrl: m.backdrop_path ? `https://image.tmdb.org/t/p/w780${m.backdrop_path}` : null,
+          imageUrl: m.backdrop_path ? `https://image.tmdb.org/t/p/w1280${m.backdrop_path}` : null,
+          summary: m.overview,
         }))) : Promise.resolve([]);
 
-      const rawgReq = rawgKey ? fetch(`https://api.rawg.io/api/games?key=${rawgKey}&ordering=-added&page_size=12&page=${pageNum}`)
+      const rawgReq = rawgKey ? fetch(`https://api.rawg.io/api/games?key=${rawgKey}&dates=${currentYear}-01-01,${currentYear}-12-31&ordering=-added&page_size=10&page=${pageNum}`)
         .then(res => res.json())
-        .then(data => (data.results || []).map((g: RAWGResult): Review => ({
-          id: `game-${pageNum}-${g.id}`,
+        .then(data => (data.results || []).map((g: RAWGItem) => ({
+          id: `game-${g.id}`,
           title: g.name,
           category: "Games",
           rating: g.rating ? g.rating * 2 : 0,
           year: g.released ? g.released.split('-')[0] : 'N/A',
           genre: g.genres?.[0]?.name || 'Game',
-          reviewer: 'RAWG',
-          avatar: 'RG',
-          summary: 'Trending gaming experience.',
-          image: 'game-placeholder', // Added to satisfy TS
           imageUrl: g.background_image || null,
+          summary: 'Trending game.',
         }))) : Promise.resolve([]);
 
       const [movies, shows, games] = await Promise.all([tmdbMoviesReq, tmdbShowsReq, rawgReq]);
-      const all: Review[] = [...movies, ...shows, ...games].sort(() => 0.5 - Math.random());
-      return all;
-    } catch (err) {
-      console.error("Fetch error:", err);
+      return [...movies, ...shows, ...games];
+    } catch {
       return [];
     }
   };
@@ -100,112 +89,123 @@ export default function Trending() {
     async function loadInitial() {
       setLoading(true);
       const initialItems = await fetchPage(1);
-      setReviews(initialItems);
+      // We shuffle here once during the effect to satisfy purity rules
+      const shuffled = [...initialItems].sort(() => 0.5 - Math.random());
+      setReviews(shuffled);
       setLoading(false);
     }
     loadInitial();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleLoadMore = async () => {
-    if (loadingMore) return;
-    setLoadingMore(true);
-    const nextPage = page + 1;
-    const nextItems = await fetchPage(nextPage);
-    setReviews(prev => [...prev, ...nextItems]);
-    setPage(nextPage);
-    setLoadingMore(false);
-  };
+  const featuredList = useMemo(() => {
+    if (reviews.length === 0) return [];
+    return reviews.slice(0, 3);
+  }, [reviews]);
 
-  const featured = reviews.slice(0, 4);
-  const trending = reviews.slice(4);
+  const getTopTen = (cat: string) => reviews.filter(r => r.category === cat).slice(0, 10);
 
   return (
-    <div className="min-h-screen bg-[#050505] text-slate-100 selection:bg-yellow-400 selection:text-black font-sans">
+    <div className="relative min-h-screen bg-[#050505] text-slate-100 selection:bg-yellow-400 selection:text-black font-sans">
+      
+      {/* 🌌 Background Atmosphere */}
+      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-[10%] -left-[10%] w-[50%] h-[50%] bg-blue-400/10 blur-[120px] rounded-full opacity-50" />
+        <div className="absolute -bottom-[10%] -right-[10%] w-[50%] h-[50%] bg-yellow-400/10 blur-[120px] rounded-full opacity-50" />
+        <div className="absolute inset-0 opacity-[0.03]" 
+             style={{ backgroundImage: `linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)`, backgroundSize: '80px 80px' }} />
+      </div>
+
       <Header />
 
-      <main className="relative z-10 w-full px-6 py-12">
+      <main className="relative z-10 isolate w-full px-6 py-12">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-60">
-            <div className="w-16 h-16 border-2 border-slate-800 border-t-blue-400 rounded-full animate-spin" />
-            <p className="mt-8 text-slate-500 font-black uppercase tracking-[0.5em] text-[10px]">Syncing Blitz Feed</p>
+            <div className="w-16 h-16 border border-white/10 border-t-yellow-400 border-l-blue-400 rounded-full animate-spin" />
+            <p className="mt-6 text-[10px] font-black uppercase tracking-[0.4em] text-slate-500 animate-pulse">Scanning Global Archives...</p>
           </div>
         ) : (
-          <div className="space-y-24">
+          <div className="flex flex-col gap-y-32">
             
-            {/* FEATURED / HERO SECTION */}
-            <section className="relative">
-              <div className="flex items-center gap-4 mb-10">
-                <div className="h-[1px] w-12 bg-blue-400" />
-                <h2 className="text-[11px] font-black uppercase tracking-[0.6em] text-blue-400 flex items-center gap-2">
-                  <FaNewspaper /> Headline Stories
-                </h2>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                <div className="lg:col-span-8 group cursor-pointer relative overflow-hidden bg-slate-900 aspect-video lg:aspect-auto lg:h-[500px] border border-white/5">
-                    {featured[0] && (
-                        <>
-                            <img src={featured[0].imageUrl || ''} className="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:scale-105 transition-transform duration-700" alt="" />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
-                            <div className="absolute bottom-0 left-0 p-10">
-                                <span className="bg-blue-500 text-[10px] font-black uppercase px-3 py-1 mb-4 inline-block tracking-widest">Top Pick</span>
-                                <h3 className="text-4xl md:text-6xl font-black tracking-tighter uppercase mb-4 leading-none">
-                                    {featured[0].title}
-                                </h3>
-                                <p className="text-slate-400 max-w-xl text-sm line-clamp-2 uppercase font-medium tracking-tight">
-                                    {featured[0].summary}
-                                </p>
-                            </div>
-                        </>
-                    )}
+            {/* ⚡ PAGE HEADER */}
+            <div className="space-y-12">
+              <div className="flex flex-col items-center text-center w-full animate-in fade-in slide-in-from-top-4 duration-700">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="h-px w-8 bg-blue-400" />
+                  <span className="text-[10px] font-black uppercase tracking-[0.8em] text-slate-400">TRENDING</span>
+                  <div className="h-px w-8 bg-yellow-400" />
                 </div>
+                <h1 className="text-5xl md:text-7xl font-black tracking-[-0.05em] text-white uppercase leading-[0.9]">
+                  FOR <br className="md:hidden" />
+                  <span className="text-transparent relative inline-block" style={{ WebkitTextStroke: '1.5px rgba(250, 204, 21, 0.9)' }}> YOU </span>
+                </h1>
+              </div>
+            </div>
 
-                <div className="lg:col-span-4 space-y-4">
-                    {featured.slice(1, 4).map((r) => (
-                        <div key={r.id} className="bg-slate-900/50 border border-white/5 p-4 flex gap-4 hover:border-blue-400/30 transition-all group cursor-pointer">
-                            <div className="w-24 h-24 shrink-0 bg-black overflow-hidden">
-                                <img src={r.imageUrl || ''} className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity" alt="" />
-                            </div>
-                            <div className="flex flex-col justify-center">
-                                <span className="text-yellow-400 text-[9px] font-black uppercase tracking-widest mb-1">{r.category}</span>
-                                <h4 className="font-black text-sm uppercase leading-tight line-clamp-2">{r.title}</h4>
-                            </div>
-                        </div>
-                    ))}
+            {/* 2. SPOTLIGHT */}
+            {featuredList.length > 0 && (
+              <section className="relative pb-16">
+                <SectionHeading title="Spotlight" subtitle="Curated" accentColor="bg-yellow-400" />
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-6 mt-10 md:auto-rows-[minmax(350px,auto)]">
+                  {featuredList.map((rev, index) => {
+                    const gridPlacement = index === 0 ? "md:col-span-8 md:row-span-2" : "md:col-span-4 md:row-span-1";
+                    return (
+                      <div key={rev.id} className={`${gridPlacement} relative h-full`}><FeaturedCard review={rev} /></div>
+                    );
+                  })}
                 </div>
-              </div>
-            </section>
+              </section>
+            )}
 
-            {/* MAIN TRENDING FEED */}
-            <section>
-              <div className="flex items-center justify-between mb-12 border-b border-slate-800 pb-6">
-                <h2 className="text-3xl font-black tracking-tighter text-white flex items-center gap-3 uppercase">
-                  <FaFire className="text-yellow-400" /> Trending <span className="text-slate-500">Now</span>
-                </h2>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-10">
-                {trending.map((r) => (
-                  <ReviewCard key={r.id} review={r} />
-                ))}
-              </div>
-
-              {/* LOAD MORE */}
-              <div className="flex justify-center mt-20">
-                <button
-                  onClick={handleLoadMore}
-                  disabled={loadingMore}
-                  className="group relative flex items-center gap-12 bg-white text-black font-black uppercase tracking-tighter text-sm px-16 py-6 hover:bg-yellow-400 transition-all duration-300"
-                >
-                  {loadingMore ? "Updating Feed..." : "Load More Discoveries"}
-                  <FaBolt className={loadingMore ? "animate-spin" : "group-hover:text-blue-500"} />
-                </button>
-              </div>
-            </section>
+            {/* 3. TOP 10 LISTS */}
+            <div className="flex flex-col gap-y-32">
+              <TopTenSection title="Top 10 Movies" icon={<FaFilm />} items={getTopTen("Movies")} accentColor="text-white" borderAccent="border-white" />
+              <TopTenSection title="Top 10 Shows" icon={<FaTv />} items={getTopTen("Shows")} accentColor="text-blue-400" borderAccent="border-blue-400" />
+              <TopTenSection title="Top 10 Games" icon={<FaGamepad />} items={getTopTen("Games")} accentColor="text-yellow-400" borderAccent="border-yellow-400" />
+            </div>
           </div>
         )}
       </main>
       <Footer />
     </div>
+  );
+}
+
+function SectionHeading({ title, subtitle, accentColor }: { title: string, subtitle: string, accentColor: string }) {
+  return (
+    <div className="relative flex items-center w-full mb-6">
+      <div className="flex-1 h-px bg-linear-to-r from-transparent to-white/10" />
+      <div className="flex flex-col items-center px-8 relative z-10 text-center">
+        <span className="text-[9px] font-black uppercase tracking-[0.5em] text-slate-500 mb-2">{subtitle}</span>
+        <h2 className="text-2xl md:text-3xl font-black uppercase tracking-[0.2em] text-white">{title}</h2>
+        <div className={`absolute -bottom-3 left-1/2 -translate-x-1/2 w-12 h-0.5 ${accentColor}`} />
+      </div>
+      <div className="flex-1 h-px bg-linear-to-l from-transparent to-white/10" />
+    </div>
+  );
+}
+
+function TopTenSection({ title, icon, items, accentColor, borderAccent }: { title: string, icon: React.ReactNode, items: Review[], accentColor: string, borderAccent: string }) {
+  if (items.length === 0) return null;
+  return (
+    <section className="relative pt-4">
+      <div className="flex items-center justify-between mb-10 border-b border-white/5 pb-6">
+        <h2 className="text-3xl font-black uppercase tracking-tighter flex items-center gap-4">
+          <span className={`${accentColor}`}>{icon}</span> {title}
+        </h2>
+        <FaStar className={`${accentColor} opacity-50 text-xs`} />
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-x-6 gap-y-16 pt-8">
+        {items.map((item, idx) => (
+          <div key={item.id} className="relative group">
+            <div className={`absolute -top-6 -left-3 z-30 w-10 h-10 bg-black border ${borderAccent} text-white flex items-center justify-center font-black text-sm shadow-2xl`}>
+              {idx + 1}
+              <div className={`absolute top-0 right-0 w-2 h-2 ${accentColor.replace('text-', 'bg-')}`} />
+            </div>
+            <ReviewCard review={item} />
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
