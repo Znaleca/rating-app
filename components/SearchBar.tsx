@@ -3,10 +3,9 @@
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { FaSearch, FaSpinner, FaFilm, FaTv, FaGamepad, FaKey, FaFire } from 'react-icons/fa';
+import { FaSearch, FaSpinner, FaFilm, FaTv, FaGamepad, FaKey, FaFire, FaChevronRight } from 'react-icons/fa';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
+// --- Types ---
 interface MediaResult {
     id: string;
     title: string;
@@ -41,7 +40,7 @@ export default function SearchBar() {
     const [missingApiKey, setMissingApiKey] = useState(false);
     const searchRef = useRef<HTMLDivElement>(null);
 
-    // Fetch trending data (Logic remains the same)
+    // Initial fetch for Trending Data (Intelligence)
     useEffect(() => {
         let isMounted = true;
         const fetchTrending = async () => {
@@ -56,19 +55,19 @@ export default function SearchBar() {
                             if (!data.results) return [];
                             return data.results
                                 .filter((item: TMDBItem) => item.media_type === 'movie' || item.media_type === 'tv')
-                                .slice(0, 3)
+                                .slice(0, 4)
                                 .map((item: TMDBItem) => ({
                                     id: `trend-${item.media_type}-${item.id}`,
                                     title: item.title || item.name,
                                     subtitle: (item.release_date || item.first_air_date || '').split('-')[0],
-                                    imageUrl: item.poster_path ? `https://image.tmdb.org/t/p/w92${item.poster_path}` : undefined,
+                                    imageUrl: item.poster_path ? `https://image.tmdb.org/t/p/w185${item.poster_path}` : undefined,
                                     type: item.media_type
                                 }));
                         }).catch(() => [])
                     : Promise.resolve([]);
 
                 const fetchRawg = rawgKey
-                    ? fetch(`https://api.rawg.io/api/games?key=${rawgKey}&ordering=-added&page_size=3`)
+                    ? fetch(`https://api.rawg.io/api/games?key=${rawgKey}&ordering=-added&page_size=4`)
                         .then(res => res.json())
                         .then(data => {
                             if (!data.results) return [];
@@ -85,7 +84,7 @@ export default function SearchBar() {
                 const [tmdbResults, games] = await Promise.all([fetchTmdb, fetchRawg]);
 
                 if (isMounted) {
-                    const combined = [...tmdbResults, ...games].sort(() => 0.5 - Math.random()).slice(0, 6);
+                    const combined = [...tmdbResults, ...games].sort(() => 0.5 - Math.random());
                     setTrendingResults(combined);
                 }
             } catch (error) {
@@ -97,40 +96,34 @@ export default function SearchBar() {
         return () => { isMounted = false; };
     }, []);
 
-    // Debounce search (Logic remains the same)
+    // Search Logic
     useEffect(() => {
         if (!query.trim()) {
             setResults([]);
-            setMissingApiKey(false);
             return;
         }
 
         const timer = setTimeout(async () => {
             setLoading(true);
-            setMissingApiKey(false);
-
             try {
                 const tmdbKey = process.env.NEXT_PUBLIC_TMDB_API_KEY;
                 const rawgKey = process.env.NEXT_PUBLIC_RAWG_API_KEY;
 
-                if (!tmdbKey || !rawgKey) setMissingApiKey(true);
-
                 const fetchTmdb = tmdbKey
-                    ? fetch(`https://api.themoviedb.org/3/search/multi?api_key=${tmdbKey}&query=${encodeURIComponent(query)}&include_adult=false`)
+                    ? fetch(`https://api.themoviedb.org/3/search/multi?api_key=${tmdbKey}&query=${encodeURIComponent(query)}`)
                         .then(res => res.json())
                         .then(data => (data.results || [])
                             .filter((item: TMDBItem) => item.media_type === 'movie' || item.media_type === 'tv')
-                            .slice(0, 4)
                             .map((item: TMDBItem) => ({
                                 id: `search-${item.media_type}-${item.id}`,
                                 title: item.title || item.name,
                                 subtitle: (item.release_date || item.first_air_date || '').split('-')[0],
-                                imageUrl: item.poster_path ? `https://image.tmdb.org/t/p/w92${item.poster_path}` : undefined,
+                                imageUrl: item.poster_path ? `https://image.tmdb.org/t/p/w185${item.poster_path}` : undefined,
                                 type: item.media_type
                             }))) : Promise.resolve([]);
 
                 const fetchRawg = rawgKey
-                    ? fetch(`https://api.rawg.io/api/games?key=${rawgKey}&search=${encodeURIComponent(query)}&page_size=3`)
+                    ? fetch(`https://api.rawg.io/api/games?key=${rawgKey}&search=${encodeURIComponent(query)}&page_size=5`)
                         .then(res => res.json())
                         .then(data => (data.results || []).map((game: RAWGItem) => ({
                             id: `search-game-${game.id}`,
@@ -141,20 +134,18 @@ export default function SearchBar() {
                         }))) : Promise.resolve([]);
 
                 const [t, g] = await Promise.all([fetchTmdb, fetchRawg]);
-                const combined = [...t, ...g].slice(0, 9);
-
-                setResults(combined);
-                if (combined.length > 0) setIsOpen(true);
-            } catch (error) {
-                console.error("Search error:", error);
+                setResults([...t, ...g].slice(0, 10));
+            } catch (err) {
+                console.error(err);
             } finally {
                 setLoading(false);
             }
-        }, 400);
+        }, 300);
 
         return () => clearTimeout(timer);
     }, [query]);
 
+    // Handle clicks outside
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
             if (searchRef.current && !searchRef.current.contains(event.target as Node)) setIsOpen(false);
@@ -163,89 +154,115 @@ export default function SearchBar() {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
+    const displayItems = query.trim() ? results : trendingResults;
+
     return (
-        <div className="relative w-full z-60" ref={searchRef}>
+        <div className="relative w-full z-50 font-sans" ref={searchRef}>
             <div className="relative group">
+                <div className="absolute -left-[1px] top-0 bottom-0 w-[2px] bg-yellow-400 scale-y-0 group-focus-within:scale-y-100 transition-transform duration-300" />
+                
                 <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
                     {loading ? (
-                        <FaSpinner className="h-3 w-3 text-amber-500 animate-spin" />
+                        <FaSpinner className="h-3 w-3 text-yellow-400 animate-spin" />
                     ) : (
-                        <FaSearch className="h-3 w-3 text-zinc-500 group-focus-within:text-amber-500 transition-colors" />
+                        <FaSearch className="h-3 w-3 text-slate-500 group-focus-within:text-white transition-colors" />
                     )}
                 </div>
+                
                 <input
                     type="text"
-                    className="block w-full pl-10 pr-4 py-2.5 bg-zinc-900/50 border border-white/5 rounded-full text-xs font-medium text-white placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-amber-500/50 focus:bg-zinc-900 transition-all"
-                    placeholder="Search the archives..."
+                    className="block w-full pl-12 pr-4 py-4 bg-black/60 border border-slate-800 text-sm font-medium text-white placeholder-slate-600 focus:outline-none focus:border-slate-500 focus:bg-black transition-all tracking-wide uppercase"
+                    placeholder="SEARCH ARCHIVES..."
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     onFocus={() => setIsOpen(true)}
                 />
+
+                <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none hidden md:flex">
+                    <span className="text-[9px] font-black px-1.5 py-0.5 border border-slate-800 text-slate-600 uppercase">Input Active</span>
+                </div>
             </div>
 
-            {/* Results Dropdown */}
-            {isOpen && ((query.trim() ? results.length > 0 : trendingResults.length > 0) || (query.trim() && missingApiKey)) && (
-                <div className="absolute top-full mt-3 w-full min-w-[320px] left-0 bg-zinc-950 border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
-
-                    {!query.trim() && trendingResults.length > 0 && (
-                        <div className="bg-white/5 px-4 py-3 flex items-center gap-2 border-b border-white/5">
-                            <FaFire className="text-amber-500 w-3 h-3" />
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Discover Trending</span>
+            {/* Always show the dropdown if open, regardless of search query */}
+            {isOpen && (
+                <div className="absolute top-full left-0 right-0 mt-0 bg-[#0a0a0a] border-x border-b border-slate-800 shadow-[0_30px_60px_rgba(0,0,0,0.9)] overflow-hidden animate-in fade-in slide-in-from-top-1 duration-200">
+                    
+                    <div className="flex items-center justify-between px-4 py-2 bg-slate-900/40 border-b border-slate-800/50">
+                        <div className="flex items-center gap-2">
+                            {query.trim() ? (
+                                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-blue-400 animate-pulse">Syncing Results</span>
+                            ) : (
+                                <>
+                                    <FaFire className="text-yellow-400 w-2.5 h-2.5" />
+                                    <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Trending Intelligence</span>
+                                </>
+                            )}
                         </div>
-                    )}
+                        <span className="text-[8px] font-bold text-slate-600 uppercase tracking-tighter">
+                            {displayItems.length} Data Points
+                        </span>
+                    </div>
 
-                    <ul className="max-h-100 overflow-y-auto p-2 scrollbar-hide">
-                        {(query.trim() ? results : trendingResults).map((item) => (
-                            <li key={item.id}>
-                                <Link
-                                    href={`/archives/${item.id}`}
-                                    onClick={() => { setIsOpen(false); setQuery(''); }}
-                                    className="w-full text-left flex items-center gap-4 p-2.5 hover:bg-white/5 rounded-xl transition-all group block"
-                                >
-                                    <div className="relative w-10 h-14 overflow-hidden rounded-lg bg-zinc-900 border border-white/5 shrink-0">
-                                        {item.imageUrl ? (
-                                            <Image src={item.imageUrl} alt={item.title} fill className="object-cover transition-transform duration-500 group-hover:scale-110" sizes="40px" />
-                                        ) : (
-                                            <div className="w-full h-full flex items-center justify-center text-zinc-700">
-                                                {item.type === 'movie' ? <FaFilm size={12}/> : item.type === 'game' ? <FaGamepad size={12}/> : <FaTv size={12}/>}
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center justify-between gap-2">
-                                            <h4 className="text-[13px] font-bold text-zinc-100 truncate group-hover:text-amber-500 transition-colors">
-                                                {item.title}
-                                            </h4>
-                                        </div>
-                                        <div className="flex items-center gap-2 mt-1">
-                                            <span className="text-[9px] font-black uppercase tracking-wider text-amber-500/80">
-                                                {item.type}
-                                            </span>
-                                            {item.subtitle && (
-                                                <>
-                                                    <span className="w-1 h-1 rounded-full bg-zinc-800" />
-                                                    <span className="text-[10px] text-zinc-500 truncate font-medium uppercase tracking-tight">
-                                                        {item.subtitle}
-                                                    </span>
-                                                </>
+                    <ul className="max-h-[480px] overflow-y-auto scrollbar-none">
+                        {displayItems.length > 0 ? (
+                            displayItems.map((item) => (
+                                <li key={item.id} className="border-b border-slate-900 last:border-0">
+                                    <Link
+                                        href={`/archives/${item.id}`}
+                                        onClick={() => { setIsOpen(false); setQuery(''); }}
+                                        className="flex items-center gap-4 p-4 hover:bg-slate-900/50 transition-all group"
+                                    >
+                                        <div className="relative w-12 h-16 shrink-0 bg-slate-900 border border-slate-800 overflow-hidden">
+                                            {item.imageUrl ? (
+                                                <Image 
+                                                    src={item.imageUrl} 
+                                                    alt={item.title} 
+                                                    fill 
+                                                    className="object-cover grayscale group-hover:grayscale-0 opacity-80 group-hover:opacity-100 transition-all duration-500 scale-100 group-hover:scale-110" 
+                                                    sizes="48px" 
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-slate-700">
+                                                    {item.type === 'movie' ? <FaFilm size={14}/> : item.type === 'game' ? <FaGamepad size={14}/> : <FaTv size={14}/>}
+                                                </div>
                                             )}
                                         </div>
-                                    </div>
-                                </Link>
-                            </li>
-                        ))}
+
+                                        <div className="flex-1 min-w-0">
+                                            <h4 className="text-[13px] font-black text-slate-300 truncate uppercase tracking-tight group-hover:text-white transition-colors">
+                                                {item.title}
+                                            </h4>
+                                            <div className="flex items-center gap-3 mt-1">
+                                                <span className={`text-[8px] font-black px-1.5 py-0.5 border transition-all ${
+                                                    item.type === 'game' 
+                                                        ? 'border-yellow-900 text-yellow-700 bg-yellow-400/5 group-hover:border-yellow-400 group-hover:text-yellow-400' 
+                                                        : 'border-blue-900 text-blue-700 bg-blue-400/5 group-hover:border-blue-400 group-hover:text-blue-400'
+                                                }`}>
+                                                    {item.type}
+                                                </span>
+                                                {item.subtitle && (
+                                                    <span className="text-[10px] text-slate-600 font-mono group-hover:text-slate-400 transition-colors">
+                                                        // {item.subtitle}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <FaChevronRight className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-yellow-400 w-2.5 h-2.5" />
+                                    </Link>
+                                </li>
+                            ))
+                        ) : (
+                            <div className="p-10 text-center">
+                                <p className="text-[10px] font-black text-slate-700 uppercase tracking-widest">No Intelligence Found</p>
+                            </div>
+                        )}
                     </ul>
 
-                    {missingApiKey && (
-                        <div className="bg-amber-500/5 px-4 py-3 text-[10px] text-zinc-500 border-t border-white/5">
-                            <div className="flex items-start gap-2">
-                                <FaKey className="w-3 h-3 text-amber-500/50 mt-0.5 shrink-0" />
-                                <p className="leading-relaxed uppercase tracking-tight font-bold">
-                                    Archive sync incomplete. Check <span className="text-amber-500/70">.env.local</span>
-                                </p>
-                            </div>
-                        </div>
-                    )}
+                    {/* Quick Action Footer */}
+                    <div className="bg-black p-3 border-t border-slate-800 flex justify-center">
+                        <p className="text-[7px] font-bold text-slate-700 uppercase tracking-[0.4em]">Secure Archive Connection Established</p>
+                    </div>
                 </div>
             )}
         </div>

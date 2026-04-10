@@ -1,118 +1,69 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { FaBolt, FaFilm, FaTv, FaGamepad, FaCompass } from "react-icons/fa";
+import { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { FaChevronLeft, FaChevronRight, FaFilm, FaTv, FaGamepad, FaStar } from "react-icons/fa";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ReviewCard from "@/components/ReviewCard";
-import SearchBar from "@/components/SearchBar";
-
+import BrowseSearch from "@/components/BrowseSearch";
+import FeaturedCard from "@/components/FeaturedCard"; 
 import { Category, CATEGORY_ICON_COMPONENTS, Review } from "@/lib/types";
 
-interface TMDBResult {
-  id: number;
-  title?: string;
-  name?: string;
-  vote_average: number;
-  release_date?: string;
-  first_air_date?: string;
-  overview: string;
-  backdrop_path: string | null;
-}
-
-interface RAWGResult {
-  id: number;
-  name: string;
-  rating: number;
-  released: string;
-  genres: { name: string }[];
-  background_image: string | null;
-}
-
 export default function Browse() {
-  const [activeCategory, setActiveCategory] = useState<Category>("All");
-  const [activeGenre, setActiveGenre] = useState<string>("All Genres");
-  
+  const router = useRouter();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [browsePage, setBrowsePage] = useState(1);
 
-  const categories: Category[] = ["All", "Movies", "Shows", "Games"];
-
-  const availableGenres = ["All Genres", ...Array.from(new Set(reviews.map((r) => r.genre).filter(Boolean)))];
-
+  // Helper to fetch standard trending items
   const fetchPage = async (pageNum: number) => {
     try {
       const tmdbKey = process.env.NEXT_PUBLIC_TMDB_API_KEY;
       const rawgKey = process.env.NEXT_PUBLIC_RAWG_API_KEY;
+      const currentYear = new Date().getFullYear();
 
-      const tmdbMoviesReq = tmdbKey ? fetch(`https://api.themoviedb.org/3/trending/movie/day?api_key=${tmdbKey}&page=${pageNum}`)
-        .then(res => res.json())
-        .then(data => (data.results || []).map((m: TMDBResult): Review => ({
-          id: `movie-${pageNum}-${m.id}`,
+      const tmdbMoviesReq = tmdbKey ? fetch(`https://api.themoviedb.org/3/discover/movie?api_key=${tmdbKey}&primary_release_year=${currentYear}&sort_by=popularity.desc&page=${pageNum}`).then(res => res.json()).then(data => (data.results || []).map((m: any) => ({
+          id: `movie-${m.id}`,
           title: m.title || "Untitled",
           category: "Movies",
           rating: m.vote_average || 0,
           year: m.release_date ? m.release_date.split('-')[0] : 'N/A',
           genre: 'Movie',
-          reviewer: 'TMDB',
-          avatar: 'TM',
-          summary: m.overview || 'Trending movie right now.',
-          image: 'movie2',
-          imageUrl: m.backdrop_path ? `https://image.tmdb.org/t/p/w780${m.backdrop_path}` : null,
-        })))
-        .catch(err => { console.error("Movie fetch error:", err); return []; }) 
-        : Promise.resolve([]);
+          imageUrl: m.backdrop_path ? `https://image.tmdb.org/t/p/w1280${m.backdrop_path}` : null,
+          summary: m.overview,
+        }))) : Promise.resolve([]);
 
-      const tmdbShowsReq = tmdbKey ? fetch(`https://api.themoviedb.org/3/trending/tv/day?api_key=${tmdbKey}&page=${pageNum}`)
-        .then(res => res.json())
-        .then(data => (data.results || []).map((m: TMDBResult): Review => ({
-          id: `show-${pageNum}-${m.id}`,
+      const tmdbShowsReq = tmdbKey ? fetch(`https://api.themoviedb.org/3/discover/tv?api_key=${tmdbKey}&first_air_date_year=${currentYear}&sort_by=popularity.desc&page=${pageNum}`).then(res => res.json()).then(data => (data.results || []).map((m: any) => ({
+          id: `show-${m.id}`,
           title: m.name || "Untitled",
           category: "Shows",
           rating: m.vote_average || 0,
           year: m.first_air_date ? m.first_air_date.split('-')[0] : 'N/A',
           genre: 'TV Show',
-          reviewer: 'TMDB',
-          avatar: 'TM',
-          summary: m.overview || 'Highly popular TV show recently discovered.',
-          image: 'show1',
-          imageUrl: m.backdrop_path ? `https://image.tmdb.org/t/p/w780${m.backdrop_path}` : null,
-        })))
-        .catch(err => { console.error("TV fetch error:", err); return []; })
-        : Promise.resolve([]);
+          imageUrl: m.backdrop_path ? `https://image.tmdb.org/t/p/w1280${m.backdrop_path}` : null,
+          summary: m.overview,
+        }))) : Promise.resolve([]);
 
-      const rawgReq = rawgKey ? fetch(`https://api.rawg.io/api/games?key=${rawgKey}&ordering=-added&page_size=10&page=${pageNum}`)
-        .then(res => res.json())
-        .then(data => (data.results || []).map((g: RAWGResult): Review => ({
-          id: `game-${pageNum}-${g.id}`,
+      const rawgReq = rawgKey ? fetch(`https://api.rawg.io/api/games?key=${rawgKey}&dates=${currentYear}-01-01,${currentYear}-12-31&ordering=-added&page_size=10&page=${pageNum}`).then(res => res.json()).then(data => (data.results || []).map((g: any) => ({
+          id: `game-${g.id}`,
           title: g.name,
           category: "Games",
           rating: g.rating ? g.rating * 2 : 0,
           year: g.released ? g.released.split('-')[0] : 'N/A',
-          genre: g.genres && g.genres.length > 0 ? g.genres[0].name : 'Game',
-          reviewer: 'RAWG',
-          avatar: 'RG',
-          summary: 'A trending and highly anticipated gaming experience.',
-          image: 'game1',
+          genre: g.genres?.[0]?.name || 'Game',
           imageUrl: g.background_image || null,
-        })))
-        .catch(err => { console.error("Game fetch error:", err); return []; })
-        : Promise.resolve([]);
+          summary: 'Trending game.',
+        }))) : Promise.resolve([]);
 
       const [movies, shows, games] = await Promise.all([tmdbMoviesReq, tmdbShowsReq, rawgReq]);
-      
-      const all: Review[] = [...movies, ...shows, ...games];
-      all.sort(() => 0.5 - Math.random());
-      
-      return all;
+      return [...movies, ...shows, ...games];
     } catch (err) {
-      console.error("Failed to load discover content", err);
       return [];
     }
   };
+
+  // GLOBAL SEARCH LOGIC: Hits the actual search endpoints
+
 
   useEffect(() => {
     async function loadInitial() {
@@ -124,184 +75,127 @@ export default function Browse() {
     loadInitial();
   }, []);
 
-  const handleLoadMore = async () => {
-    if (loadingMore) return;
-    setLoadingMore(true);
-    
-    const nextPage = page + 1;
-    const nextItems = await fetchPage(nextPage);
-    
-    setReviews(prev => [...prev, ...nextItems]);
-    setPage(nextPage);
-    setLoadingMore(false);
-  };
+  const featuredList = useMemo(() => {
+    if (reviews.length === 0) return [];
+    return [...reviews].sort(() => 0.5 - Math.random()).slice(0, 3);
+  }, [reviews.length]);
 
-  // Reset browse page when filters change
-  useEffect(() => {
-    setBrowsePage(1);
-  }, [activeCategory, activeGenre]);
 
-  const filtered = reviews.filter((r) => {
-    const catMatch = activeCategory === "All" || r.category === activeCategory;
-    const genreMatch = activeGenre === "All Genres" || r.genre === activeGenre;
-    return catMatch && genreMatch;
-  });
 
-  const ITEMS_PER_PAGE = 20;
-  const totalBrowsePages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
-  const currentBrowseStart = (browsePage - 1) * ITEMS_PER_PAGE;
-  
-  const displayItems = filtered.slice(currentBrowseStart, currentBrowseStart + ITEMS_PER_PAGE);
+  const getTopTen = (cat: string) => reviews.filter(r => r.category === cat).slice(0, 10);
 
   return (
-    <div className="min-h-screen bg-[#09090b] text-zinc-100 selection:bg-amber-500/30 selection:text-amber-200">
+    <div className="relative min-h-screen bg-[#050505] text-slate-100 selection:bg-yellow-400 selection:text-black font-sans">
+      
+      {/* 🌌 Background Atmosphere */}
+      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-[10%] -left-[10%] w-[50%] h-[50%] bg-blue-400/10 blur-[120px] rounded-full opacity-50" />
+        <div className="absolute -bottom-[10%] -right-[10%] w-[50%] h-[50%] bg-yellow-400/10 blur-[120px] rounded-full opacity-50" />
+        <div className="absolute inset-0 opacity-[0.03]" 
+             style={{ backgroundImage: `linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)`, backgroundSize: '80px 80px' }} />
+      </div>
+
       <Header />
 
-      <main className="max-w-400 mx-auto px-8 py-16">
+      <main className="relative z-10 isolate w-full px-6 py-12">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-60">
-            <div className="relative flex items-center justify-center">
-              <div className="w-24 h-24 border-2 border-zinc-800 border-t-amber-500 rounded-full animate-spin" />
-              <FaBolt className="absolute text-amber-500 animate-pulse text-2xl" />
-            </div>
-            <p className="mt-8 text-zinc-500 font-black uppercase tracking-[0.5em] text-[10px]">Initializing Blitz</p>
+            <div className="w-16 h-16 border border-white/10 border-t-yellow-400 border-l-blue-400 rounded-full animate-spin" />
+            <p className="mt-6 text-[10px] font-black uppercase tracking-[0.4em] text-slate-500 animate-pulse">Scanning Global Archives...</p>
           </div>
         ) : (
-          <div className="space-y-32">
+          <div className="flex flex-col gap-y-32">
             
-            <section className="animate-in fade-in slide-in-from-top-10 duration-1000 mb-12">
-              <div className="bg-zinc-900/40 border border-zinc-800/50 rounded-4xl p-8 md:p-12 backdrop-blur-md flex flex-col gap-8 mx-auto max-w-5xl">
-                <div className="relative w-full max-w-3xl mx-auto transform scale-110">
-                  <SearchBar />
+            {/* ⚡ SEARCH & PAGE HEADER */}
+            <div className="space-y-12">
+              <div className="flex flex-col items-center text-center w-full animate-in fade-in slide-in-from-top-4 duration-700">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="h-[1px] w-8 bg-blue-400" />
+                  <span className="text-[10px] font-black uppercase tracking-[0.8em] text-slate-400">Database</span>
+                  <div className="h-[1px] w-8 bg-yellow-400" />
                 </div>
-
-                <div className="border-t border-white/5 pt-8 flex flex-col gap-6">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 mr-2">Media Formats</span>
-                    {categories.map((cat) => {
-                      const Icon = CATEGORY_ICON_COMPONENTS[cat];
-                      return (
-                        <button
-                          key={cat}
-                          onClick={() => setActiveCategory(cat)}
-                          className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all duration-300 ${
-                            activeCategory === cat 
-                              ? "bg-amber-500 text-zinc-950 border border-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.2)]" 
-                              : "bg-zinc-950 text-zinc-400 border border-white/5 hover:border-white/20 hover:text-white"
-                          }`}
-                        >
-                          <Icon size={12} className={activeCategory === cat ? "text-zinc-950/80" : "text-zinc-600"} />
-                          {cat}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-4">
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 mr-2">Genres Map</span>
-                    <div className="flex flex-wrap gap-2">
-                        {availableGenres.map((genre) => (
-                          <button
-                            key={genre}
-                            onClick={() => setActiveGenre(genre)}
-                            className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-wider transition-all duration-300 ${
-                              activeGenre === genre
-                                ? "bg-white text-zinc-950 shadow-[0_0_15px_rgba(255,255,255,0.2)] scale-105" 
-                                : "bg-white/5 text-zinc-500 border border-white/5 hover:bg-white/10 hover:text-white"
-                            }`}
-                          >
-                            {genre}
-                          </button>
-                        ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            <section className="animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-300">
-              <div className="flex items-end justify-between mb-12 border-b border-zinc-800 pb-8">
-                <div>
-                  <h2 className="text-3xl font-black tracking-tighter text-white flex items-center gap-4">
-                    <FaCompass className="text-zinc-700" />
-                    Search Results
-                  </h2>
-                  <p className="text-zinc-500 text-xs mt-2 uppercase tracking-widest font-bold">
-                    Showing {filtered.length} curated entries
-                  </p>
-                </div>
+                <h1 className="text-5xl md:text-7xl font-black tracking-[-0.05em] text-white uppercase leading-[0.9]">
+                  EXPLORE <br className="md:hidden" />
+                  <span className="text-transparent relative inline-block" style={{ WebkitTextStroke: '1.5px rgba(250, 204, 21, 0.9)' }}> MEDIA </span>
+                </h1>
               </div>
 
-              {filtered.length === 0 ? (
-                <div className="text-center py-40 bg-zinc-900/20 rounded-4xl border border-dashed border-zinc-800">
-                  <p className="text-zinc-600 font-bold uppercase tracking-widest text-xs">No entries match your search criteria</p>
+              <section className="max-w-4xl mx-auto w-full space-y-6">
+                <div className="relative border border-white/5 bg-black/60 backdrop-blur-xl shadow-2xl rounded-2xl">
+                  <BrowseSearch data={reviews} onSearch={(query) => {
+                    if (query) {
+                      router.push(`/search?q=${encodeURIComponent(query)}`);
+                    }
+                  }} />
                 </div>
-              ) : (
-                <>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-8 gap-y-12">
-                    {displayItems.map((r) => (
-                      <ReviewCard key={r.id} review={r} />
-                    ))}
-                  </div>
+              </section>
+            </div>
 
-                  {totalBrowsePages > 0 && (
-                    <div className="flex items-center justify-center gap-2 mt-20 pb-8">
-                      <button 
-                        onClick={() => {
-                          setBrowsePage(p => Math.max(1, p - 1));
-                          window.scrollTo({ top: 0, behavior: 'smooth' });
-                        }}
-                        disabled={browsePage === 1}
-                        className="w-10 h-10 flex items-center justify-center rounded-full bg-zinc-900 border border-zinc-800 disabled:opacity-30 hover:border-amber-500/50 transition-colors text-zinc-400 hover:text-amber-500"
-                      >
-                        &larr;
-                      </button>
-                      
-                      <div className="flex gap-1.5 items-center">
-                        {Array.from({ length: totalBrowsePages }).map((_, i) => (
-                          <button
-                            key={i}
-                            onClick={() => {
-                              setBrowsePage(i + 1);
-                              window.scrollTo({ top: 0, behavior: 'smooth' });
-                            }}
-                            className={`w-10 h-10 flex items-center justify-center rounded-full text-[10px] font-black transition-all duration-300 ${
-                              browsePage === i + 1
-                                ? "bg-amber-500 text-zinc-950 shadow-[0_0_15px_rgba(245,158,11,0.4)]"
-                                : "bg-zinc-900 border border-zinc-800 text-zinc-500 hover:border-white/20 hover:text-white"
-                            }`}
-                          >
-                            {i + 1}
-                          </button>
-                        ))}
-                      </div>
+            {/* 2. SPOTLIGHT (Only if not searching) */}
+            {featuredList.length > 0 && (
+              <section className="relative pb-16">
+                <SectionHeading title="Spotlight" subtitle="Curated" accentColor="bg-yellow-400" />
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-6 mt-10 md:auto-rows-[minmax(350px,auto)]">
+                  {featuredList.map((rev, index) => {
+                    const gridPlacement = index === 0 ? "md:col-span-8 md:row-span-2" : "md:col-span-4 md:row-span-1";
+                    return (
+                      <div key={rev.id} className={`${gridPlacement} relative h-full`}><FeaturedCard review={rev} /></div>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
 
-                      <button 
-                        onClick={async () => {
-                          if (browsePage < totalBrowsePages) {
-                            setBrowsePage(p => p + 1);
-                            window.scrollTo({ top: 0, behavior: 'smooth' });
-                          } else {
-                            await handleLoadMore();
-                            setBrowsePage(p => p + 1);
-                            window.scrollTo({ top: 0, behavior: 'smooth' });
-                          }
-                        }}
-                        disabled={loadingMore}
-                        className="w-10 h-10 flex items-center justify-center rounded-full bg-zinc-900 border border-zinc-800 disabled:opacity-50 hover:border-amber-500/50 transition-colors text-zinc-400 hover:text-amber-500"
-                      >
-                        {loadingMore ? <div className="w-4 h-4 border border-zinc-500 border-t-amber-500 rounded-full animate-spin"/> : <>&rarr;</>}
-                      </button>
-                    </div>
-                  )}
-                </>
-              )}
-            </section>
-
+            {/* 3. TOP 10 LISTS */}
+            <div className="flex flex-col gap-y-32">
+              <TopTenSection title="Top 10 Movies" icon={<FaFilm />} items={getTopTen("Movies")} accentColor="text-white" borderAccent="border-white" />
+              <TopTenSection title="Top 10 Shows" icon={<FaTv />} items={getTopTen("Shows")} accentColor="text-blue-400" borderAccent="border-blue-400" />
+              <TopTenSection title="Top 10 Games" icon={<FaGamepad />} items={getTopTen("Games")} accentColor="text-yellow-400" borderAccent="border-yellow-400" />
+            </div>
           </div>
         )}
       </main>
       <Footer />
     </div>
+  );
+}
+
+// Subcomponents for Headings and Sections to keep it clean
+function SectionHeading({ title, subtitle, accentColor }: { title: string, subtitle: string, accentColor: string }) {
+  return (
+    <div className="relative flex items-center w-full mb-6">
+      <div className="flex-1 h-[1px] bg-gradient-to-r from-transparent to-white/10" />
+      <div className="flex flex-col items-center px-8 relative z-10 text-center">
+        <span className="text-[9px] font-black uppercase tracking-[0.5em] text-slate-500 mb-2">{subtitle}</span>
+        <h2 className="text-2xl md:text-3xl font-black uppercase tracking-[0.2em] text-white">{title}</h2>
+        <div className={`absolute -bottom-3 left-1/2 -translate-x-1/2 w-12 h-[2px] ${accentColor}`} />
+      </div>
+      <div className="flex-1 h-[1px] bg-gradient-to-l from-transparent to-white/10" />
+    </div>
+  );
+}
+
+function TopTenSection({ title, icon, items, accentColor, borderAccent }: { title: string, icon: any, items: Review[], accentColor: string, borderAccent: string }) {
+  if (items.length === 0) return null;
+  return (
+    <section className="relative pt-4">
+      <div className="flex items-center justify-between mb-10 border-b border-white/5 pb-6">
+        <h2 className="text-3xl font-black uppercase tracking-tighter flex items-center gap-4">
+          <span className={`${accentColor}`}>{icon}</span> {title}
+        </h2>
+        <FaStar className={`${accentColor} opacity-50 text-xs`} />
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-x-6 gap-y-16 pt-8">
+        {items.map((item, idx) => (
+          <div key={item.id} className="relative group">
+            <div className={`absolute -top-6 -left-3 z-30 w-10 h-10 bg-black border ${borderAccent} text-white flex items-center justify-center font-black text-sm shadow-2xl`}>
+              {idx + 1}
+              <div className={`absolute top-0 right-0 w-2 h-2 ${accentColor.replace('text-', 'bg-')}`} />
+            </div>
+            <ReviewCard review={item} />
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }

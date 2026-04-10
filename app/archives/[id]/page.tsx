@@ -170,7 +170,7 @@ export default function ArchiveDetails() {
                     </Link>
                 </div>
                 
-                <div className="absolute bottom-0 left-0 w-full p-10 md:p-20 z-20 flex flex-col items-start max-w-7xl">
+                <div className="absolute bottom-0 left-0 w-full p-10 md:p-20 z-20 flex flex-col items-start w-full">
                     <div className="flex items-center gap-3 mb-6">
                         <span className="px-3 py-1 bg-amber-500 text-zinc-950 text-[10px] font-black uppercase tracking-widest rounded-full">
                             {data.mediaType}
@@ -195,7 +195,7 @@ export default function ArchiveDetails() {
             </section>
 
             {/* DETAILS BODY */}
-            <section className="max-w-7xl mx-auto px-10 md:px-20 py-16 grid grid-cols-1 md:grid-cols-3 gap-16 pb-32">
+            <section className="w-full px-10 md:px-20 py-16 grid grid-cols-1 md:grid-cols-3 gap-16 pb-32">
                 
                 <div className="md:col-span-2 space-y-12">
                     <div className="space-y-6">

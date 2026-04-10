@@ -52,30 +52,23 @@ export default function Header() {
     }, [supabase]);
 
     useEffect(() => {
-        if (isMenuOpen) {
-            document.body.style.overflow = 'hidden';
-        } else {
-            document.body.style.overflow = 'unset';
-        }
+        document.body.style.overflow = isMenuOpen ? 'hidden' : 'unset';
     }, [isMenuOpen]);
 
     return (
-        /* Dark Glassmorphism Header */
-        <header className="sticky top-0 z-40 bg-zinc-950/80 backdrop-blur-xl border-b border-white/5 shadow-2xl transition-all">
-            <div className="max-w-400 mx-auto px-8 h-24 flex items-center justify-between gap-8">
+        <header className="sticky top-0 z-50 bg-black/60 backdrop-blur-xl border-b border-white/5 transition-all duration-500">
+            <div className="w-full px-6 h-20 flex items-center justify-between">
 
-                {/* Editorial Logo */}
-                <Link href="/" className="flex items-center group cursor-pointer no-underline z-50">
-                    <div className="flex items-baseline overflow-hidden">
-                        <h1 className="text-3xl font-black tracking-tighter text-white group-hover:text-amber-500 transition-colors duration-500">
-                            BLITZ
-                        </h1>
-                        <span className="text-amber-500 text-3xl font-black ml-0.5 group-hover:translate-x-1 transition-transform duration-500 ease-out">.</span>
-                    </div>
+                {/* Blitz Logo with New Theme Accents */}
+                <Link href="/" className="flex items-center group z-50">
+                    <h1 className="text-2xl font-black tracking-tighter text-white uppercase">
+                        BLI<span className="text-yellow-400">T</span>Z
+                        <span className="text-blue-500 group-hover:translate-x-1 inline-block transition-transform duration-500">.</span>
+                    </h1>
                 </Link>
 
-                {/* Refined Desktop Nav */}
-                <nav className="hidden lg:flex items-center gap-10">
+                {/* Desktop Nav with Blue/Yellow indicators */}
+                <nav className="hidden lg:flex items-center gap-8">
                     {ROUTES.map((route) => {
                         const Icon = route.icon;
                         const isActive = pathname === route.path || (route.path !== "/" && pathname.startsWith(route.path));
@@ -83,17 +76,16 @@ export default function Header() {
                             <Link
                                 key={route.name}
                                 href={route.path}
-                                className={`group relative flex items-center gap-2.5 py-2 text-[11px] font-black uppercase tracking-[0.2em] transition-colors duration-500 ${
-                                    isActive 
-                                    ? "text-white" 
-                                    : "text-zinc-500 hover:text-zinc-200"
+                                className={`group relative flex items-center gap-2.5 py-2 text-[10px] font-black uppercase tracking-[0.3em] transition-all duration-300 ${
+                                    isActive ? "text-white" : "text-slate-500 hover:text-slate-200"
                                 }`}
                             >
-                                <Icon size={14} className={`${isActive ? "text-amber-500" : "text-zinc-600 group-hover:text-amber-400"} transition-colors duration-500`} />
+                                <Icon size={12} className={`${isActive ? "text-blue-400" : "text-slate-600 group-hover:text-yellow-400"} transition-colors`} />
                                 {route.name}
                                 
-                                <span className={`absolute -bottom-1 left-0 h-0.5 bg-amber-500 transition-all duration-500 ease-out ${
-                                    isActive ? "w-full" : "w-0 group-hover:w-full"
+                                {/* Active Indicator Line */}
+                                <span className={`absolute -bottom-1 left-0 h-[2px] transition-all duration-500 ${
+                                    isActive ? "w-full bg-blue-400" : "w-0 group-hover:w-full bg-yellow-400"
                                 }`} />
                             </Link>
                         );
@@ -102,107 +94,78 @@ export default function Header() {
 
                 {/* Right Side Controls */}
                 <div className="flex items-center gap-6">
-
-                    <div className="flex items-center gap-4">
-                        {loading ? (
-                            <div className="flex items-center gap-3 animate-pulse">
-                                <div className="hidden sm:flex flex-col gap-1.5 items-end">
-                                    <div className="w-16 h-1.5 bg-zinc-800 rounded-full"></div>
-                                    <div className="w-10 h-1.5 bg-zinc-900 rounded-full"></div>
-                                </div>
-                                <div className="w-10 h-10 bg-zinc-900 rounded-full" />
+                    {loading ? (
+                        <div className="w-8 h-8 rounded-full border border-white/5 animate-pulse bg-slate-900" />
+                    ) : user ? (
+                        <div className="flex items-center gap-4">
+                            <div className="hidden sm:block text-right">
+                                <p className="text-[10px] font-black text-white uppercase tracking-tight leading-none mb-1">{user.name}</p>
+                                <p className="text-[8px] font-bold text-blue-400 uppercase tracking-widest">{user.role}</p>
                             </div>
-                        ) : user ? (
-                            <div className="flex items-center gap-5 pl-6 border-l border-white/10">
-                                <div className="hidden sm:flex items-center gap-3">
-                                    <div className="text-right">
-                                        <p className="text-[11px] font-black text-white uppercase tracking-wide leading-none mb-1">{user.name}</p>
-                                        <p className="text-[9px] font-bold text-amber-500/60 uppercase tracking-widest">{user.role}</p>
-                                    </div>
-                                    <div className="w-10 h-10 rounded-full bg-zinc-900 border border-white/5 flex items-center justify-center text-zinc-500 shadow-inner group cursor-pointer hover:border-amber-500/50 transition-colors duration-500">
-                                        <FaUser size={14} className="group-hover:text-amber-500 transition-colors" />
-                                    </div>
-                                </div>
-                                <button 
-                                    onClick={() => supabase.auth.signOut()} 
-                                    className="p-2 text-zinc-500 hover:text-white transition-colors duration-300"
-                                    title="Sign Out"
-                                >
-                                    <FaSignOutAlt size={16} />
-                                </button>
+                            
+                            <div className="w-9 h-9 rounded-full bg-slate-900 border border-white/10 flex items-center justify-center text-slate-500 group cursor-pointer hover:border-yellow-400/50 transition-all duration-500">
+                                <FaUser size={12} className="group-hover:text-yellow-400 transition-colors" />
                             </div>
-                        ) : (
-                            <Link href="/login" className="bg-white text-zinc-950 text-[10px] font-black uppercase tracking-[0.2em] px-8 py-3.5 rounded-full hover:bg-amber-500 hover:shadow-2xl hover:shadow-amber-500/20 transition-all duration-500 ease-out">
-                                Login
-                            </Link>
-                        )}
 
-                        {/* Mobile Trigger */}
-                        <button 
-                            onClick={() => setIsMenuOpen(true)} 
-                            className="p-2 lg:hidden text-white hover:text-amber-500 transition-colors duration-300"
-                        >
-                            <FaBars size={20} />
-                        </button>
-                    </div>
+                            <button 
+                                onClick={() => supabase.auth.signOut()} 
+                                className="p-2 text-slate-500 hover:text-red-400 transition-colors"
+                            >
+                                <FaSignOutAlt size={14} />
+                            </button>
+                        </div>
+                    ) : (
+                        <Link href="/login" className="relative group overflow-hidden bg-white text-black text-[10px] font-black uppercase tracking-[0.2em] px-6 py-2.5 transition-all">
+                            <span className="relative z-10">Login</span>
+                            <div className="absolute inset-0 bg-yellow-400 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+                        </Link>
+                    )}
+
+                    {/* Mobile Menu Trigger */}
+                    <button 
+                        onClick={() => setIsMenuOpen(true)} 
+                        className="p-2 lg:hidden text-white hover:text-blue-400 transition-colors"
+                    >
+                        <FaBars size={18} />
+                    </button>
                 </div>
             </div>
 
-            {/* Mobile Takeover remains dark/glassy */}
-            <div className={`fixed inset-0 z-50 bg-zinc-950/98 backdrop-blur-3xl transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${
-                isMenuOpen 
-                ? 'opacity-100 translate-y-0 pointer-events-auto' 
-                : 'opacity-0 -translate-y-8 pointer-events-none'
+            {/* Mobile Takeover Overlay */}
+            <div className={`fixed inset-0 z-[60] bg-black/95 backdrop-blur-2xl transition-all duration-700 ${
+                isMenuOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-full pointer-events-none'
             }`}>
-                <div className="flex flex-col h-full p-8 md:p-12 relative max-w-7xl mx-auto">
+                <div className="flex flex-col h-full p-8">
                     <div className="flex justify-end">
-                        <button 
-                            onClick={() => setIsMenuOpen(false)} 
-                            className="text-zinc-500 hover:text-white hover:rotate-90 transition-all duration-500 p-2"
-                        >
-                            <FaTimes size={28} />
+                        <button onClick={() => setIsMenuOpen(false)} className="text-slate-500 hover:text-white p-2">
+                            <FaTimes size={24} />
                         </button>
                     </div>
 
-                    <nav className="mt-20 flex flex-col gap-6">
-                        {ROUTES.map((route, index) => {
-                            const isActive = pathname === route.path || (route.path !== "/" && pathname.startsWith(route.path));
-                            return (
+                    <nav className="mt-12 flex flex-col gap-4">
+                        {ROUTES.map((route, i) => (
                             <Link
                                 key={`mob-${route.name}`}
                                 href={route.path}
                                 onClick={() => setIsMenuOpen(false)}
-                                style={{ transitionDelay: `${index * 75}ms` }}
-                                className={`group flex items-center justify-between text-5xl md:text-8xl font-black uppercase tracking-tighter transition-all duration-500 ${
-                                    isActive 
-                                    ? 'text-white' 
-                                    : 'text-zinc-800 hover:text-zinc-400'
-                                } ${isMenuOpen ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-12'}`}
+                                className="group flex items-center justify-between text-5xl font-black uppercase tracking-tighter text-slate-800 hover:text-white transition-all duration-300"
                             >
-                                <span className="flex items-center gap-6">
-                                    <span className="text-amber-500 text-sm align-middle opacity-50">{String(index + 1).padStart(2, '0')}</span>
+                                <span className="flex items-center gap-4">
+                                    <span className="text-blue-500 text-xs tracking-normal">{String(i + 1).padStart(2, '0')}</span>
                                     {route.name}
                                 </span>
-                                <span className={`text-2xl md:text-4xl text-amber-500 transition-all duration-500 ${isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
-                                    &rarr;
-                                </span>
+                                <span className="text-yellow-400 opacity-0 group-hover:opacity-100 transition-opacity">→</span>
                             </Link>
-                        )})}
+                        ))}
                     </nav>
 
-                    <div className={`mt-auto transition-all duration-700 delay-500 ${isMenuOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-                        <div className="border-t border-white/5 pt-8 pb-4 flex justify-between items-end">
-                            <div className="text-zinc-700 text-xs font-black tracking-[0.4em] uppercase">
-                                BLITZ.
-                            </div>
-                            <Link 
-                                href="/login" 
-                                onClick={() => setIsMenuOpen(false)} 
-                                className="text-amber-500 text-lg md:text-xl font-black uppercase tracking-widest hover:text-white transition-colors duration-300"
-                            >
-                                {user ? 'Dashboard' : 'Sign In'}
-                            </Link>
-                        </div>
+                    <div className="mt-auto border-t border-white/5 pt-8">
+                        <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.5em] mb-4">Blitz Critics Archive</p>
+                        {user ? (
+                            <button onClick={() => supabase.auth.signOut()} className="text-red-500 font-black uppercase tracking-widest text-sm">Sign Out</button>
+                        ) : (
+                            <Link href="/login" onClick={() => setIsMenuOpen(false)} className="text-blue-400 font-black uppercase tracking-widest text-sm">Sign In</Link>
+                        )}
                     </div>
                 </div>
             </div>

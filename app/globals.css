@@ -3,12 +3,13 @@
 :root {
   --background: #020617;
   --foreground: #f1f5f9;
-}
 
-@theme {
+  /* moved from @theme */
   --color-blue-400: #60a5fa;
   --color-yellow-400: #facc15;
 }
+
+/* ...existing code... */
 
 body {
   background: var(--background);
@@ -16,7 +17,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Sharp, solid scrollbar */
+/* Sharp, solid scrollbar for the whole page */
 ::-webkit-scrollbar {
   width: 10px;
 }
@@ -29,4 +30,13 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #facc15;
+}
+
+/* Utility to hide scrollbars on the Featured Slider specifically */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }
