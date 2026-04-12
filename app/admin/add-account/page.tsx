@@ -1,11 +1,42 @@
 "use client";
 
 import { useState } from "react";
-import { FaUser, FaEnvelope, FaLock, FaShieldAlt, FaFeatherAlt, FaUserCircle } from "react-icons/fa";
+import { FaUser, FaEnvelope, FaLock, FaShieldAlt, FaFeatherAlt, FaUserCircle, FaUserPlus, FaCheck } from "react-icons/fa";
 import { createAccountAction } from "@/app/actions/actions";
+
+const ROLE_OPTIONS = [
+    {
+        value: "audience",
+        label: "Audience",
+        desc: "Standard user — can rate and review",
+        icon: FaUserCircle,
+        accent: "border-blue-400",
+        bg: "bg-blue-400/5",
+        text: "text-blue-400",
+    },
+    {
+        value: "critics",
+        label: "Critics",
+        desc: "Verified critic — ratings count as critic score",
+        icon: FaFeatherAlt,
+        accent: "border-yellow-400",
+        bg: "bg-yellow-400/5",
+        text: "text-yellow-400",
+    },
+    {
+        value: "admin",
+        label: "Admin",
+        desc: "Full platform and user management access",
+        icon: FaShieldAlt,
+        accent: "border-violet-400",
+        bg: "bg-violet-400/5",
+        text: "text-violet-400",
+    },
+];
 
 export default function AddAccountPage() {
     const [loading, setLoading] = useState(false);
+    const [selectedRole, setSelectedRole] = useState("audience");
     const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -23,132 +54,140 @@ export default function AddAccountPage() {
         } else {
             setMessage({ type: "success", text: "Account created successfully!" });
             form.reset();
+            setSelectedRole("audience");
         }
 
         setLoading(false);
     }
 
     return (
-        <div className="p-6 sm:p-10 text-slate-900">
-            <div className="max-w-3xl bg-white/70 backdrop-blur-xl border border-slate-200/60 shadow-xl shadow-slate-200/50 rounded-3xl p-8 sm:p-10">
-                <h1 className="text-3xl font-black mb-2 tracking-tight">Add Account</h1>
-                <p className="text-slate-500 mb-8 font-medium">Manually create a new user and assign their role.</p>
+        <div className="p-8 xl:p-12">
+            {/* Header */}
+            <div className="mb-10 border-b border-white/5 pb-8">
+                <div className="flex items-center gap-3 mb-2">
+                    <FaUserPlus className="text-yellow-400 text-sm" />
+                    <span className="text-[9px] font-black uppercase tracking-[0.4em] text-slate-500">Management</span>
+                </div>
+                <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tighter text-white">Create Account</h1>
+                <p className="text-slate-500 text-sm mt-2 font-medium">Manually create a new user and assign their role</p>
+            </div>
 
+            <div className="max-w-2xl">
                 {message && (
-                    <div className={`mb-6 p-4 rounded-2xl font-bold text-sm border shadow-sm ${message.type === "success" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-red-50 text-red-600 border-red-200"}`}>
+                    <div className={`mb-6 p-4 border text-sm font-bold flex items-center gap-3 ${
+                        message.type === "success"
+                            ? "bg-green-400/10 border-green-400/30 text-green-400"
+                            : "bg-red-400/10 border-red-400/30 text-red-400"
+                    }`}>
+                        {message.type === "success" && <FaCheck size={12} />}
                         {message.text}
                     </div>
                 )}
 
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                        {/* Full Name */}
-                        <div>
-                            <label className="block text-slate-500 text-xs font-bold mb-2 uppercase tracking-wide">
-                                Full Name
-                            </label>
-                            <div className="relative group">
-                                <FaUser className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4 group-focus-within:text-yellow-500 transition-colors" />
-                                <input
-                                    name="fullName"
-                                    type="text"
-                                    required
-                                    placeholder="John Doe"
-                                    className="w-full bg-slate-50 hover:bg-white border border-slate-200 focus:bg-white rounded-2xl py-3.5 pl-11 pr-4 text-slate-900 placeholder:text-slate-400 text-sm focus:outline-none focus:border-yellow-500 focus:ring-4 focus:ring-yellow-500/10 transition-all shadow-sm"
-                                />
-                            </div>
+                <form onSubmit={handleSubmit} className="space-y-8">
+                    {/* Full Name */}
+                    <div>
+                        <label className="block text-[9px] font-black uppercase tracking-[0.4em] text-slate-500 mb-3">
+                            Full Name
+                        </label>
+                        <div className="relative">
+                            <FaUser className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 text-xs" />
+                            <input
+                                name="fullName"
+                                type="text"
+                                required
+                                placeholder="John Doe"
+                                className="w-full bg-white/[0.03] border border-white/10 text-white text-sm py-3.5 pl-10 pr-4 placeholder-slate-700 outline-none focus:border-yellow-400 transition-colors"
+                            />
                         </div>
+                    </div>
 
-                        {/* Email */}
-                        <div>
-                            <label className="block text-slate-500 text-xs font-bold mb-2 uppercase tracking-wide">
-                                Email
-                            </label>
-                            <div className="relative group">
-                                <FaEnvelope className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4 group-focus-within:text-yellow-500 transition-colors" />
-                                <input
-                                    name="email"
-                                    type="email"
-                                    required
-                                    placeholder="user@example.com"
-                                    className="w-full bg-slate-50 hover:bg-white border border-slate-200 focus:bg-white rounded-2xl py-3.5 pl-11 pr-4 text-slate-900 placeholder:text-slate-400 text-sm focus:outline-none focus:border-yellow-500 focus:ring-4 focus:ring-yellow-500/10 transition-all shadow-sm"
-                                />
-                            </div>
+                    {/* Email */}
+                    <div>
+                        <label className="block text-[9px] font-black uppercase tracking-[0.4em] text-slate-500 mb-3">
+                            Email
+                        </label>
+                        <div className="relative">
+                            <FaEnvelope className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 text-xs" />
+                            <input
+                                name="email"
+                                type="email"
+                                required
+                                placeholder="user@example.com"
+                                className="w-full bg-white/[0.03] border border-white/10 text-white text-sm py-3.5 pl-10 pr-4 placeholder-slate-700 outline-none focus:border-yellow-400 transition-colors"
+                            />
                         </div>
+                    </div>
 
-                        {/* Password */}
-                        <div className="sm:col-span-2">
-                            <label className="block text-slate-500 text-xs font-bold mb-2 uppercase tracking-wide">
-                                Password
-                            </label>
-                            <div className="relative group">
-                                <FaLock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4 group-focus-within:text-yellow-500 transition-colors" />
-                                <input
-                                    name="password"
-                                    type="password"
-                                    required
-                                    minLength={6}
-                                    placeholder="••••••••"
-                                    className="w-full bg-slate-50 hover:bg-white border border-slate-200 focus:bg-white rounded-2xl py-3.5 pl-11 pr-4 text-slate-900 placeholder:text-slate-400 text-sm focus:outline-none focus:border-yellow-500 focus:ring-4 focus:ring-yellow-500/10 transition-all shadow-sm"
-                                />
-                            </div>
-                            <p className="text-slate-400 text-xs mt-2 font-medium">Must be at least 6 characters.</p>
+                    {/* Password */}
+                    <div>
+                        <label className="block text-[9px] font-black uppercase tracking-[0.4em] text-slate-500 mb-3">
+                            Password
+                        </label>
+                        <div className="relative">
+                            <FaLock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 text-xs" />
+                            <input
+                                name="password"
+                                type="password"
+                                required
+                                minLength={6}
+                                placeholder="••••••••"
+                                className="w-full bg-white/[0.03] border border-white/10 text-white text-sm py-3.5 pl-10 pr-4 placeholder-slate-700 outline-none focus:border-yellow-400 transition-colors"
+                            />
                         </div>
+                        <p className="text-slate-600 text-[10px] mt-2 font-medium">Must be at least 6 characters</p>
+                    </div>
 
-                        {/* Role Selection */}
-                        <div className="sm:col-span-2">
-                            <label className="block text-slate-500 text-xs font-bold mb-3 uppercase tracking-wide">
-                                Assign Role
-                            </label>
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                {/* Audience */}
-                                <label className="relative flex flex-col items-center justify-center p-4 cursor-pointer rounded-2xl border-2 border-slate-200 bg-white hover:bg-slate-50 transition-all has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-50/50 has-[:checked]:ring-4 has-[:checked]:ring-emerald-500/10">
-                                    <input type="radio" name="role" value="audience" className="sr-only" defaultChecked />
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <FaUserCircle className="text-emerald-500 w-4 h-4" />
-                                        <span className="font-bold text-slate-900">Audience</span>
-                                    </div>
-                                    <span className="text-xs text-slate-500 font-medium text-center">Can read and manage their own profile</span>
-                                </label>
-
-                                {/* Critics */}
-                                <label className="relative flex flex-col items-center justify-center p-4 cursor-pointer rounded-2xl border-2 border-slate-200 bg-white hover:bg-slate-50 transition-all has-[:checked]:border-amber-500 has-[:checked]:bg-amber-50/50 has-[:checked]:ring-4 has-[:checked]:ring-amber-500/10">
-                                    <input type="radio" name="role" value="critics" className="sr-only" />
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <FaFeatherAlt className="text-amber-500 w-4 h-4" />
-                                        <span className="font-bold text-slate-900">Critics</span>
-                                    </div>
-                                    <span className="text-xs text-slate-500 font-medium text-center">Can write and publish new reviews</span>
-                                </label>
-
-                                {/* Admin */}
-                                <label className="relative flex flex-col items-center justify-center p-4 cursor-pointer rounded-2xl border-2 border-slate-200 bg-white hover:bg-slate-50 transition-all has-[:checked]:border-violet-500 has-[:checked]:bg-violet-50/50 has-[:checked]:ring-4 has-[:checked]:ring-violet-500/10">
-                                    <input type="radio" name="role" value="admin" className="sr-only" />
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <FaShieldAlt className="text-violet-500 w-4 h-4" />
-                                        <span className="font-bold text-slate-900">Admin</span>
-                                    </div>
-                                    <span className="text-xs text-slate-500 font-medium text-center">Full platform and user management access</span>
-                                </label>
-                            </div>
+                    {/* Role Selection */}
+                    <div>
+                        <label className="block text-[9px] font-black uppercase tracking-[0.4em] text-slate-500 mb-4">
+                            Assign Role
+                        </label>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            {ROLE_OPTIONS.map((option) => {
+                                const Icon = option.icon;
+                                const isSelected = selectedRole === option.value;
+                                return (
+                                    <label
+                                        key={option.value}
+                                        className={`flex flex-col p-5 cursor-pointer border transition-all ${
+                                            isSelected
+                                                ? `${option.accent} ${option.bg}`
+                                                : "border-white/5 bg-white/[0.02] hover:bg-white/[0.05]"
+                                        }`}
+                                    >
+                                        <input
+                                            type="radio"
+                                            name="role"
+                                            value={option.value}
+                                            className="sr-only"
+                                            checked={isSelected}
+                                            onChange={() => setSelectedRole(option.value)}
+                                        />
+                                        <Icon className={`${isSelected ? option.text : "text-slate-600"} mb-3 text-lg transition-colors`} />
+                                        <span className="text-sm font-black text-white uppercase tracking-tight mb-1">{option.label}</span>
+                                        <span className="text-[10px] text-slate-500 font-medium leading-relaxed">{option.desc}</span>
+                                    </label>
+                                );
+                            })}
                         </div>
                     </div>
 
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full sm:w-auto px-8 bg-gradient-to-r from-yellow-400 to-amber-500 hover:from-yellow-300 hover:to-amber-400 disabled:opacity-50 disabled:cursor-not-allowed text-slate-900 font-extrabold py-3.5 rounded-xl transition-all duration-300 text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 hover:-translate-y-0.5"
+                        className="px-8 py-4 bg-white text-black text-[10px] font-black uppercase tracking-[0.3em] hover:bg-yellow-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3"
                     >
                         {loading ? (
                             <>
-                                <svg className="animate-spin w-4 h-4 text-slate-900" fill="none" viewBox="0 0 24 24">
+                                <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
                                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                                 </svg>
-                                Creating User...
+                                Creating Account...
                             </>
                         ) : (
-                            "Create User Account"
+                            <><FaUserPlus size={11} /> Create Account</>
                         )}
                     </button>
                 </form>

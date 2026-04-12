@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { FaBolt, FaFire, FaArrowRight } from "react-icons/fa";
 import Link from "next/link"; 
 import Header from "@/components/Header";
@@ -9,6 +9,7 @@ import ReviewCard from "@/components/ReviewCard";
 import { Review } from "@/lib/types";
 import { useRouter } from "next/navigation";
 import BrowseSearch from "@/components/BrowseSearch";
+import { getBulkRatingsSummaries } from "@/app/actions/ratings";
 
 // Types for API Results
 interface TMDBResult {
@@ -51,6 +52,14 @@ export default function Trending() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [blitzScores, setBlitzScores] = useState<Record<string, { criticAverage: string, audienceAverage: string }>>({});
+
+  const fetchBlitzScores = useCallback(async (items: Review[]) => {
+    const ids = items.map(r => r.id.toString());
+    if (ids.length === 0) return;
+    const scores = await getBulkRatingsSummaries(ids);
+    setBlitzScores(prev => ({ ...prev, ...scores }));
+  }, []);
 
   const fetchPage = async (pageNum: number) => {
     try {
@@ -120,6 +129,7 @@ export default function Trending() {
       const initialItems = await fetchPage(1);
       setReviews(initialItems);
       setLoading(false);
+      fetchBlitzScores(initialItems);
     }
     loadInitial();
   }, []);
@@ -135,6 +145,7 @@ export default function Trending() {
       const unique = combined.filter((item, index, self) =>
         index === self.findIndex((t) => t.id === item.id)
       );
+      fetchBlitzScores(nextItems);
       return unique;
     });
 
@@ -245,7 +256,12 @@ export default function Trending() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-x-6 gap-y-12">
                 {trendingItems.map((r) => (
-                  <ReviewCard key={r.id} review={r} />
+                  <ReviewCard 
+                    key={r.id} 
+                    review={r} 
+                    criticScore={blitzScores[r.id.toString()]?.criticAverage}
+                    audienceScore={blitzScores[r.id.toString()]?.audienceAverage}
+                  />
                 ))}
               </div>
 

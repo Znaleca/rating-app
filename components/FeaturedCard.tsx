@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { FaUser, FaQuoteLeft } from "react-icons/fa";
+import { FaQuoteLeft, FaStar, FaStarHalf } from "react-icons/fa";
 import { Review, CATEGORY_ICON_COMPONENTS } from "@/lib/types";
 
 // Unified with the Blitz strict palette
@@ -13,7 +13,13 @@ const CATEGORY_COLORS: Record<string, string> = {
   Books: "text-slate-400 border-slate-400",
 };
 
-export default function FeaturedCard({ review }: { review: Review }) {
+interface FeaturedCardProps {
+  review: Review;
+  criticScore?: string;
+  audienceScore?: string;
+}
+
+export default function FeaturedCard({ review, criticScore = "N/A", audienceScore = "N/A" }: FeaturedCardProps) {
   const Icon = CATEGORY_ICON_COMPONENTS[review.category];
   const catColor = CATEGORY_COLORS[review.category] || "text-slate-500 border-slate-500";
 
@@ -52,18 +58,6 @@ export default function FeaturedCard({ review }: { review: Review }) {
           </div>
         </div>
 
-        {/* TOP RIGHT: Outlined Rating */}
-        <div className="absolute top-5 right-6 z-20 flex flex-col items-end">
-          <div 
-            className="text-4xl font-black italic text-transparent leading-none tracking-tighter select-none"
-            style={{ WebkitTextStroke: '1px rgba(255, 255, 255, 0.2)' }}
-          >
-            {Math.floor(review.rating)}
-          </div>
-          <div className="-mt-3 text-xl font-black italic text-yellow-400 drop-shadow-[0_0_15px_rgba(250,204,21,0.5)]">
-            {review.rating.toFixed(1)}
-          </div>
-        </div>
 
         {/* Content Area - Uses flex to prevent overlap */}
         <div className="absolute inset-x-0 bottom-0 p-6 z-20">
@@ -91,15 +85,21 @@ export default function FeaturedCard({ review }: { review: Review }) {
               </div>
             </div>
 
-            {/* Reviewer Badge */}
-            <div className="flex items-center gap-3 pt-4 border-t border-white/5">
-              <div className="relative flex items-center justify-center w-8 h-8 bg-black border border-white/10 text-white transition-all duration-700 group-hover:border-blue-400/50">
-                  <FaUser size={10} className="text-blue-400" />
-                  <div className="absolute bottom-0 right-0 w-1.5 h-1.5 bg-blue-400" />
+            {/* BLITZ RATINGS BANNER */}
+            <div className="flex flex-col gap-2 pt-4 border-t border-white/5 mt-2">
+              <div className="flex items-center justify-between group-hover:pl-1 transition-all duration-300">
+                 <div className="flex items-center gap-2">
+                    <FaStarHalf className="text-yellow-400 text-[10px]" />
+                    <span className="text-[8px] font-black uppercase tracking-[0.3em] text-slate-500">Blitz Critics</span>
+                 </div>
+                 <span className="text-sm font-black text-white">{criticScore}</span>
               </div>
-              <div className="overflow-hidden">
-                <p className="text-[8px] text-slate-500 font-black uppercase tracking-[0.3em] leading-none mb-1">Expert Review</p>
-                <p className="text-xs text-white font-bold tracking-tight uppercase truncate">{review.reviewer}</p>
+              <div className="flex items-center justify-between group-hover:pl-1 transition-all duration-300 delay-75">
+                 <div className="flex items-center gap-2">
+                    <FaStar className="text-blue-400 text-[10px]" />
+                    <span className="text-[8px] font-black uppercase tracking-[0.3em] text-slate-500">Blitz Audience</span>
+                 </div>
+                 <span className="text-sm font-black text-white">{audienceScore}</span>
               </div>
             </div>
           </div>

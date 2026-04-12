@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { FaSignOutAlt, FaBars, FaTimes, FaUser, FaBolt, FaSearch, FaFire } from "react-icons/fa";
+import { usePathname, useRouter } from "next/navigation";
+import { FaSignOutAlt, FaBars, FaTimes, FaUser, FaBolt, FaSearch, FaFire, FaShieldAlt } from "react-icons/fa";
 import { createClient } from "@/lib/supabase/client";
+import HeaderSearch from "@/components/HeaderSearch";
 
 const ROUTES = [
     { name: "Home", path: "/", icon: FaBolt },
@@ -14,6 +15,7 @@ const ROUTES = [
 
 export default function Header() {
     const pathname = usePathname();
+    const router = useRouter();
     const supabase = useMemo(() => createClient(), []);
     
     const [user, setUser] = useState<{ id: string; name: string; role: string } | null>(null);
@@ -56,7 +58,7 @@ export default function Header() {
     }, [isMenuOpen]);
 
     return (
-        <header className="sticky top-0 z-50 bg-black/60 backdrop-blur-xl border-b border-white/5 transition-all duration-500">
+        <header className="sticky top-0 z-50 bg-black border-b border-white/5 transition-all duration-500">
             <div className="w-full px-6 h-20 flex items-center justify-between">
 
                 {/* Blitz Logo with New Theme Accents */}
@@ -92,6 +94,9 @@ export default function Header() {
                     })}
                 </nav>
 
+                {/* Live Search Dropdown */}
+                <HeaderSearch />
+
                 {/* Right Side Controls */}
                 <div className="flex items-center gap-6">
                     {loading ? (
@@ -103,16 +108,37 @@ export default function Header() {
                                 <p className="text-[8px] font-bold text-blue-400 uppercase tracking-widest">{user.role}</p>
                             </div>
                             
-                            <div className="w-9 h-9 rounded-full bg-slate-900 border border-white/10 flex items-center justify-center text-slate-500 group cursor-pointer hover:border-yellow-400/50 transition-all duration-500">
-                                <FaUser size={12} className="group-hover:text-yellow-400 transition-colors" />
-                            </div>
+                            {/* Profile Dropdown Container */}
+                            <div className="relative group">
+                                <div className="w-9 h-9 rounded-full bg-slate-900 border border-white/10 flex items-center justify-center text-slate-500 cursor-pointer hover:border-yellow-400/50 transition-all duration-500 relative z-50">
+                                    <FaUser size={12} className="group-hover:text-yellow-400 transition-colors" />
+                                </div>
 
-                            <button 
-                                onClick={() => supabase.auth.signOut()} 
-                                className="p-2 text-slate-500 hover:text-red-400 transition-colors"
-                            >
-                                <FaSignOutAlt size={14} />
-                            </button>
+                                {/* Dropdown Menu */}
+                                <div className="absolute right-0 top-full pt-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-40 transform origin-top-right group-hover:translate-y-0 translate-y-2">
+                                    <div className="bg-[#0a0a0a] border border-white/10 shadow-2xl p-2 min-w-[200px] flex flex-col gap-1">
+                                        <div className="px-4 py-3 border-b border-white/10 mb-1 sm:hidden">
+                                            <p className="text-xs font-black text-white uppercase truncate">{user.name}</p>
+                                            <p className="text-[10px] text-blue-400 uppercase font-black tracking-widest mt-1">{user.role}</p>
+                                        </div>
+                                        <Link href="/profile" className="px-4 py-3 text-[10px] text-slate-300 hover:text-black hover:bg-yellow-400 font-black uppercase tracking-[0.2em] transition-all flex items-center gap-3">
+                                            <FaUser size={10} /> My Archives
+                                        </Link>
+                                        {(user.role === 'admin') && (
+                                            <>
+                                                <div className="my-1 h-px bg-white/5" />
+                                                <Link href="/admin/dashboard" className="px-4 py-3 text-[10px] text-yellow-400 hover:text-black hover:bg-yellow-400 font-black uppercase tracking-[0.2em] transition-all flex items-center gap-3">
+                                                    <FaShieldAlt size={10} /> Admin Panel
+                                                </Link>
+                                            </>
+                                        )}
+                                        <div className="my-1 h-px bg-white/5" />
+                                        <button onClick={() => supabase.auth.signOut()} className="px-4 py-3 text-[10px] text-slate-300 hover:text-white hover:bg-red-500 font-black uppercase tracking-[0.2em] transition-all flex items-center gap-3 w-full text-left">
+                                            <FaSignOutAlt size={10} /> Sign Out
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     ) : (
                         <Link href="/login" className="relative group overflow-hidden bg-white text-black text-[10px] font-black uppercase tracking-[0.2em] px-6 py-2.5 transition-all">
@@ -159,10 +185,20 @@ export default function Header() {
                         ))}
                     </nav>
 
-                    <div className="mt-auto border-t border-white/5 pt-8">
+                    {/* Mobile Search */}
+                    <MobileSearch onSearch={() => setIsMenuOpen(false)} />
+
+                    <div className="mt-auto border-t border-white/5 pt-8 space-y-4">
                         <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.5em] mb-4">Blitz Critics Archive</p>
                         {user ? (
-                            <button onClick={() => supabase.auth.signOut()} className="text-red-500 font-black uppercase tracking-widest text-sm">Sign Out</button>
+                            <div className="flex flex-col gap-3">
+                                {user.role === 'admin' && (
+                                    <Link href="/admin/dashboard" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 text-yellow-400 font-black uppercase tracking-widest text-sm">
+                                        <FaShieldAlt size={12} /> Admin Panel
+                                    </Link>
+                                )}
+                                <button onClick={() => supabase.auth.signOut()} className="text-red-500 font-black uppercase tracking-widest text-sm text-left">Sign Out</button>
+                            </div>
                         ) : (
                             <Link href="/login" onClick={() => setIsMenuOpen(false)} className="text-blue-400 font-black uppercase tracking-widest text-sm">Sign In</Link>
                         )}
@@ -170,5 +206,36 @@ export default function Header() {
                 </div>
             </div>
         </header>
+    );
+}
+
+function MobileSearch({ onSearch }: { onSearch: () => void }) {
+    const router = useRouter();
+    const [q, setQ] = useState("");
+
+    function handleSubmit(e: React.FormEvent) {
+        e.preventDefault();
+        const trimmed = q.trim();
+        if (!trimmed) return;
+        router.push(`/search?q=${encodeURIComponent(trimmed)}`);
+        setQ("");
+        onSearch();
+    }
+
+    return (
+        <form
+            onSubmit={handleSubmit}
+            className="mt-10 flex items-center gap-3 border border-white/10 px-5 py-4 focus-within:border-yellow-400/50 transition-colors"
+        >
+            <FaSearch size={12} className="text-slate-600 shrink-0" />
+            <input
+                type="text"
+                value={q}
+                onChange={e => setQ(e.target.value)}
+                placeholder="Search movies, shows, games…"
+                className="flex-1 bg-transparent text-sm font-medium text-white placeholder-slate-700 outline-none"
+            />
+            <button type="submit" className="text-[9px] font-black uppercase tracking-widest text-yellow-400 shrink-0">Go →</button>
+        </form>
     );
 }

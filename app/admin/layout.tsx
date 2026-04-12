@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FaChartLine, FaUsers, FaUserPlus, FaFileMedical, FaBolt, FaArrowLeft } from "react-icons/fa";
+import { FaChartLine, FaUsers, FaUserPlus, FaStar, FaBolt, FaArrowLeft, FaShieldAlt } from "react-icons/fa";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
@@ -10,35 +10,46 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const links = [
         { href: "/admin/dashboard", label: "Dashboard", icon: FaChartLine },
         { href: "/admin/accounts", label: "Accounts", icon: FaUsers },
-        { href: "/admin/add-account", label: "Add Account", icon: FaUserPlus },
-        { href: "/admin/create-content", label: "Create Content", icon: FaFileMedical },
+        { href: "/admin/add-account", label: "Create Account", icon: FaUserPlus },
+        { href: "/admin/reviews", label: "Reviews", icon: FaStar },
     ];
 
     return (
-        <div className="flex min-h-[calc(100vh-64px)] bg-slate-50">
+        <div className="flex min-h-screen bg-[#050505] text-slate-100 font-sans">
             {/* Sidebar */}
-            <aside className="w-64 border-r border-slate-200 bg-white flex flex-col shrink-0 hidden md:flex justify-between">
+            <aside className="w-64 border-r border-white/5 bg-[#080808] flex flex-col shrink-0 hidden md:flex justify-between sticky top-0 h-screen">
                 <div className="p-6">
-                    <div className="flex items-center gap-2 mb-8">
-                        <FaBolt className="text-violet-600 w-4 h-4" />
-                        <span className="font-bold text-slate-900 tracking-wide">Admin Console</span>
+                    {/* Brand */}
+                    <div className="flex items-center gap-3 mb-10 pb-6 border-b border-white/5">
+                        <div className="w-8 h-8 bg-yellow-400 flex items-center justify-center">
+                            <FaBolt className="text-black text-sm" />
+                        </div>
+                        <div>
+                            <p className="text-[8px] font-black uppercase tracking-[0.4em] text-slate-500">Blitz</p>
+                            <p className="text-sm font-black uppercase tracking-widest text-white leading-none">Admin</p>
+                        </div>
+                        <div className="ml-auto flex items-center gap-1 px-2 py-1 bg-yellow-400/10 border border-yellow-400/20">
+                            <FaShieldAlt className="text-yellow-400 text-[8px]" />
+                            <span className="text-[8px] font-black uppercase tracking-widest text-yellow-400">Root</span>
+                        </div>
                     </div>
 
-                    <nav className="flex flex-col gap-2">
+                    <p className="text-[8px] font-black uppercase tracking-[0.4em] text-slate-600 mb-4 px-2">Navigation</p>
+                    <nav className="flex flex-col gap-1">
                         {links.map((link) => {
                             const Icon = link.icon;
                             const isActive = pathname === link.href;
-
                             return (
                                 <Link
                                     key={link.href}
                                     href={link.href}
-                                    className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${isActive
-                                        ? "bg-violet-50 text-violet-700 border border-violet-200 shadow-sm"
-                                        : "text-slate-500 hover:text-slate-900 hover:bg-slate-50 border border-transparent"
-                                        }`}
+                                    className={`flex items-center gap-3 px-4 py-3 text-[11px] font-black uppercase tracking-widest transition-all border-l-2 ${
+                                        isActive
+                                            ? "border-yellow-400 bg-yellow-400/5 text-yellow-400"
+                                            : "border-transparent text-slate-500 hover:text-white hover:bg-white/5"
+                                    }`}
                                 >
-                                    <Icon className={isActive ? "text-violet-600" : "text-slate-400"} />
+                                    <Icon size={11} className={isActive ? "text-yellow-400" : "text-slate-600"} />
                                     {link.label}
                                 </Link>
                             );
@@ -46,19 +57,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     </nav>
                 </div>
 
-                <div className="p-6 border-t border-slate-200 mt-auto">
+                <div className="p-6 border-t border-white/5">
                     <Link
-                        href="/"
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-slate-500 hover:text-slate-900 hover:bg-slate-50 border border-transparent transition-all w-full"
+                        href="/browse"
+                        className="flex items-center gap-3 px-4 py-3 text-[11px] font-black uppercase tracking-widest text-slate-600 hover:text-white hover:bg-white/5 transition-all border-l-2 border-transparent w-full"
                     >
-                        <FaArrowLeft className="text-slate-400" />
+                        <FaArrowLeft size={10} />
                         Back to App
                     </Link>
                 </div>
             </aside>
 
-            {/* Main Content Area */}
-            <main className="flex-1 overflow-x-hidden">
+            {/* Main Content */}
+            <main className="flex-1 overflow-x-hidden min-h-screen">
                 {children}
             </main>
         </div>

@@ -8,6 +8,7 @@ import Footer from "@/components/Footer";
 import ReviewCard from "@/components/ReviewCard";
 import BrowseSearch from "@/components/BrowseSearch";
 import { Category, CATEGORY_ICON_COMPONENTS, Review } from "@/lib/types";
+import { getBulkRatingsSummaries } from "@/app/actions/ratings";
 
 // --- TMDB Genre Map ---
 const TMDB_GENRES: Record<number, string> = {
@@ -51,6 +52,14 @@ function SearchContent() {
   const [trendingPage, setTrendingPage] = useState(1);
   const [gameGenres, setGameGenres] = useState<string[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [blitzScores, setBlitzScores] = useState<Record<string, { criticAverage: string, audienceAverage: string }>>({});
+
+  const fetchBlitzScores = useCallback(async (items: Review[]) => {
+    const ids = items.map(r => r.id.toString());
+    if (ids.length === 0) return;
+    const scores = await getBulkRatingsSummaries(ids);
+    setBlitzScores(prev => ({ ...prev, ...scores }));
+  }, []);
 
   useEffect(() => {
     const fetchGameGenres = async () => {
@@ -80,6 +89,8 @@ function SearchContent() {
           rating: m.vote_average || 0,
           year: m.release_date ? m.release_date.split('-')[0] : 'N/A',
           genre: m.genre_ids && m.genre_ids.length > 0 ? TMDB_GENRES[m.genre_ids[0]] : 'Movie',
+          reviewer: 'TMDB',
+          avatar: 'TM',
           imageUrl: m.backdrop_path ? `https://image.tmdb.org/t/p/w1280${m.backdrop_path}` : null,
           summary: m.overview,
         }))) : Promise.resolve([]);
@@ -91,6 +102,8 @@ function SearchContent() {
           rating: m.vote_average || 0,
           year: m.first_air_date ? m.first_air_date.split('-')[0] : 'N/A',
           genre: m.genre_ids && m.genre_ids.length > 0 ? TMDB_GENRES[m.genre_ids[0]] : 'TV Show',
+          reviewer: 'TMDB',
+          avatar: 'TM',
           imageUrl: m.backdrop_path ? `https://image.tmdb.org/t/p/w1280${m.backdrop_path}` : null,
           summary: m.overview,
         }))) : Promise.resolve([]);
@@ -102,6 +115,8 @@ function SearchContent() {
           rating: g.rating ? g.rating * 2 : 0,
           year: g.released ? g.released.split('-')[0] : 'N/A',
           genre: g.genres?.[0]?.name || 'Game',
+          reviewer: 'RAWG',
+          avatar: 'RG',
           imageUrl: g.background_image || null,
           summary: 'Trending game.',
         }))) : Promise.resolve([]);
@@ -124,6 +139,7 @@ function SearchContent() {
       initial.forEach(item => uniqueMap.set(item.id, item));
       setReviews(Array.from(uniqueMap.values()));
       setLoading(false);
+      fetchBlitzScores(Array.from(uniqueMap.values()));
       return;
     }
 
@@ -138,6 +154,7 @@ function SearchContent() {
             title: m.title || "Untitled", category: "Movies" as Category, rating: m.vote_average,
             year: m.release_date?.split('-')[0] || 'N/A', 
             genre: m.genre_ids && m.genre_ids.length > 0 ? TMDB_GENRES[m.genre_ids[0]] : 'Movie',
+            reviewer: 'TMDB', avatar: 'TM',
             imageUrl: m.backdrop_path ? `https://image.tmdb.org/t/p/w1280${m.backdrop_path}` : null,
             summary: m.overview
         })));
@@ -148,6 +165,7 @@ function SearchContent() {
             title: m.name || "Untitled", category: "Shows" as Category, rating: m.vote_average,
             year: m.first_air_date?.split('-')[0] || 'N/A', 
             genre: m.genre_ids && m.genre_ids.length > 0 ? TMDB_GENRES[m.genre_ids[0]] : 'TV Show',
+            reviewer: 'TMDB', avatar: 'TM',
             imageUrl: m.backdrop_path ? `https://image.tmdb.org/t/p/w1280${m.backdrop_path}` : null,
             summary: m.overview
         })));
@@ -157,6 +175,7 @@ function SearchContent() {
             id: `game-${g.id}`,
             title: g.name, category: "Games" as Category, rating: g.rating * 2,
             year: g.released?.split('-')[0] || 'N/A', genre: g.genres?.[0]?.name || 'Game',
+            reviewer: 'RAWG', avatar: 'RG',
             imageUrl: g.background_image || null, summary: 'Search result.'
         })));
 
@@ -165,7 +184,9 @@ function SearchContent() {
       // Deduplicate by ID
       const uniqueMap = new Map();
       combined.forEach(item => uniqueMap.set(item.id, item));
-      setReviews(Array.from(uniqueMap.values()));
+      const finalItems = Array.from(uniqueMap.values());
+      setReviews(finalItems);
+      fetchBlitzScores(finalItems);
     } catch (err) {
       console.error("Search failed", err);
     } finally {
@@ -282,7 +303,14 @@ function SearchContent() {
         <section className="animate-in fade-in duration-700 pb-32 w-full">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-x-8 gap-y-16">
             {displayItems.length > 0 ? (
-              displayItems.map((r) => <ReviewCard key={r.id} review={r} />)
+              displayItems.map((r) => (
+                <ReviewCard 
+                  key={r.id} 
+                  review={r} 
+                  criticScore={blitzScores[r.id.toString()]?.criticAverage}
+                  audienceScore={blitzScores[r.id.toString()]?.audienceAverage}
+                />
+              ))
             ) : (
               <div className="col-span-full text-center py-40 border-2 border-dashed border-white/5 bg-white/[0.01]">
                  <p className="text-slate-500 font-black uppercase tracking-[0.5em] text-sm">Zero results found in database</p>

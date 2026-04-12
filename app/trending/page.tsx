@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { FaFilm, FaTv, FaGamepad, FaStar } from "react-icons/fa";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ReviewCard from "@/components/ReviewCard";
 import FeaturedCard from "@/components/FeaturedCard"; 
 import { Review } from "@/lib/types";
+import { getBulkRatingsSummaries } from "@/app/actions/ratings";
 
 // --- Types for API Responses ---
 interface TMDBItem {
@@ -32,6 +33,14 @@ interface RAWGItem {
 export default function Browse() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
+  const [blitzScores, setBlitzScores] = useState<Record<string, { criticAverage: string, audienceAverage: string }>>({});
+
+  const fetchBlitzScores = useCallback(async (items: Review[]) => {
+    const ids = items.map(r => r.id.toString());
+    if (ids.length === 0) return;
+    const scores = await getBulkRatingsSummaries(ids);
+    setBlitzScores(scores);
+  }, []);
 
   const fetchPage = async (pageNum: number): Promise<Review[]> => {
     try {
@@ -48,6 +57,8 @@ export default function Browse() {
           rating: m.vote_average || 0,
           year: m.release_date ? m.release_date.split('-')[0] : 'N/A',
           genre: 'Movie',
+          reviewer: 'TMDB',
+          avatar: 'TM',
           imageUrl: m.backdrop_path ? `https://image.tmdb.org/t/p/w1280${m.backdrop_path}` : null,
           summary: m.overview,
         }))) : Promise.resolve([]);
@@ -61,6 +72,8 @@ export default function Browse() {
           rating: m.vote_average || 0,
           year: m.first_air_date ? m.first_air_date.split('-')[0] : 'N/A',
           genre: 'TV Show',
+          reviewer: 'TMDB',
+          avatar: 'TM',
           imageUrl: m.backdrop_path ? `https://image.tmdb.org/t/p/w1280${m.backdrop_path}` : null,
           summary: m.overview,
         }))) : Promise.resolve([]);
@@ -74,6 +87,8 @@ export default function Browse() {
           rating: g.rating ? g.rating * 2 : 0,
           year: g.released ? g.released.split('-')[0] : 'N/A',
           genre: g.genres?.[0]?.name || 'Game',
+          reviewer: 'RAWG',
+          avatar: 'RG',
           imageUrl: g.background_image || null,
           summary: 'Trending game.',
         }))) : Promise.resolve([]);
@@ -89,10 +104,10 @@ export default function Browse() {
     async function loadInitial() {
       setLoading(true);
       const initialItems = await fetchPage(1);
-      // We shuffle here once during the effect to satisfy purity rules
       const shuffled = [...initialItems].sort(() => 0.5 - Math.random());
       setReviews(shuffled);
       setLoading(false);
+      fetchBlitzScores(shuffled);
     }
     loadInitial();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -150,7 +165,13 @@ export default function Browse() {
                   {featuredList.map((rev, index) => {
                     const gridPlacement = index === 0 ? "md:col-span-8 md:row-span-2" : "md:col-span-4 md:row-span-1";
                     return (
-                      <div key={rev.id} className={`${gridPlacement} relative h-full`}><FeaturedCard review={rev} /></div>
+                      <div key={rev.id} className={`${gridPlacement} relative h-full`}>
+                        <FeaturedCard 
+                          review={rev} 
+                          criticScore={blitzScores[rev.id.toString()]?.criticAverage}
+                          audienceScore={blitzScores[rev.id.toString()]?.audienceAverage}
+                        />
+                      </div>
                     );
                   })}
                 </div>
@@ -159,9 +180,9 @@ export default function Browse() {
 
             {/* 3. TOP 10 LISTS */}
             <div className="flex flex-col gap-y-32">
-              <TopTenSection title="Top 10 Movies" icon={<FaFilm />} items={getTopTen("Movies")} accentColor="text-white" borderAccent="border-white" />
-              <TopTenSection title="Top 10 Shows" icon={<FaTv />} items={getTopTen("Shows")} accentColor="text-blue-400" borderAccent="border-blue-400" />
-              <TopTenSection title="Top 10 Games" icon={<FaGamepad />} items={getTopTen("Games")} accentColor="text-yellow-400" borderAccent="border-yellow-400" />
+              <TopTenSection title="Top 10 Movies" icon={<FaFilm />} items={getTopTen("Movies")} accentColor="text-white" borderAccent="border-white" blitzScores={blitzScores} />
+              <TopTenSection title="Top 10 Shows" icon={<FaTv />} items={getTopTen("Shows")} accentColor="text-blue-400" borderAccent="border-blue-400" blitzScores={blitzScores} />
+              <TopTenSection title="Top 10 Games" icon={<FaGamepad />} items={getTopTen("Games")} accentColor="text-yellow-400" borderAccent="border-yellow-400" blitzScores={blitzScores} />
             </div>
           </div>
         )}
@@ -185,7 +206,7 @@ function SectionHeading({ title, subtitle, accentColor }: { title: string, subti
   );
 }
 
-function TopTenSection({ title, icon, items, accentColor, borderAccent }: { title: string, icon: React.ReactNode, items: Review[], accentColor: string, borderAccent: string }) {
+function TopTenSection({ title, icon, items, accentColor, borderAccent, blitzScores }: { title: string, icon: React.ReactNode, items: Review[], accentColor: string, borderAccent: string, blitzScores: Record<string, { criticAverage: string, audienceAverage: string }> }) {
   if (items.length === 0) return null;
   return (
     <section className="relative pt-4">
@@ -202,7 +223,11 @@ function TopTenSection({ title, icon, items, accentColor, borderAccent }: { titl
               {idx + 1}
               <div className={`absolute top-0 right-0 w-2 h-2 ${accentColor.replace('text-', 'bg-')}`} />
             </div>
-            <ReviewCard review={item} />
+            <ReviewCard 
+              review={item} 
+              criticScore={blitzScores[item.id.toString()]?.criticAverage}
+              audienceScore={blitzScores[item.id.toString()]?.audienceAverage}
+            />
           </div>
         ))}
       </div>
