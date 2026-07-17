@@ -38,13 +38,13 @@ export default async function AdminDashboardPage() {
     return (
         <div className="p-8 xl:p-12">
             {/* Header */}
-            <div className="mb-12 border-b border-white/5 pb-8">
+            <div className="mb-12 border-b border-[var(--border-subtle)] pb-8">
                 <div className="flex items-center gap-3 mb-2">
                     <FaChartLine className="text-yellow-400 text-sm" />
-                    <span className="text-[9px] font-black uppercase tracking-[0.4em] text-slate-500">Overview</span>
+                    <span className="text-[9px] font-black uppercase tracking-[0.4em] text-[var(--muted-foreground)]">Overview</span>
                 </div>
-                <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tighter text-white">Dashboard</h1>
-                <p className="text-slate-500 text-sm mt-2 font-medium">Blitz platform administration console</p>
+                <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tighter text-[var(--foreground)]">Dashboard</h1>
+                <p className="text-[var(--muted-foreground)] text-sm mt-2 font-medium">Blitz platform administration console</p>
             </div>
 
             {/* Stats Grid */}
@@ -54,8 +54,8 @@ export default async function AdminDashboardPage() {
                     return (
                         <div key={s.label} className={`border ${s.bg} p-6 relative overflow-hidden`}>
                             <Icon className={`${s.color} text-2xl mb-4`} />
-                            <p className="text-3xl font-black text-white mb-1">{s.value}</p>
-                            <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">{s.label}</p>
+                            <p className="text-3xl font-black text-[var(--foreground)] mb-1">{s.value}</p>
+                            <p className="text-[9px] font-black uppercase tracking-widest text-[var(--muted-foreground)]">{s.label}</p>
                             <div className={`absolute bottom-0 left-0 h-[2px] w-full ${s.color.replace("text-", "bg-")} opacity-40`} />
                         </div>
                     );
@@ -64,7 +64,7 @@ export default async function AdminDashboardPage() {
 
             {/* Quick Actions */}
             <div>
-                <p className="text-[9px] font-black uppercase tracking-[0.4em] text-slate-600 mb-6">Quick Actions</p>
+                <p className="text-[9px] font-black uppercase tracking-[0.4em] text-[var(--muted-foreground)] mb-6">Quick Actions</p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {[
                         { href: "/admin/accounts", title: "Manage Accounts", desc: "View all users, change roles", icon: FaUsers, accent: "border-blue-400/30 hover:border-blue-400" },
@@ -73,10 +73,10 @@ export default async function AdminDashboardPage() {
                     ].map(item => {
                         const Icon = item.icon;
                         return (
-                            <a key={item.href} href={item.href} className={`block p-6 bg-white/[0.02] border ${item.accent} transition-all group`}>
-                                <Icon className="text-slate-500 group-hover:text-white mb-4 text-xl transition-colors" />
-                                <p className="text-sm font-black uppercase tracking-tight text-white mb-1">{item.title}</p>
-                                <p className="text-[10px] text-slate-500 font-medium">{item.desc}</p>
+                            <a key={item.href} href={item.href} className={`block p-6 bg-[var(--foreground)]/[0.02] border ${item.accent} transition-all group`}>
+                                <Icon className="text-[var(--muted-foreground)] group-hover:text-[var(--foreground)] mb-4 text-xl transition-colors" />
+                                <p className="text-sm font-black uppercase tracking-tight text-[var(--foreground)] mb-1">{item.title}</p>
+                                <p className="text-[10px] text-[var(--muted-foreground)] font-medium">{item.desc}</p>
                             </a>
                         );
                     })}

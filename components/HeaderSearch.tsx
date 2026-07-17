@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-    FaSearch, FaSpinner, FaFilm, FaTv, FaGamepad,
+    FaSearch, FaSpinner, FaFilm, FaTv,
     FaFire, FaChevronRight, FaTimes, FaUser,
     FaShieldAlt, FaFeatherAlt, FaUserCircle
 } from "react-icons/fa";
@@ -18,7 +18,7 @@ interface MediaResult {
     title: string;
     year?: string;
     imageUrl?: string;
-    type: "movie" | "tv" | "game";
+    type: "movie" | "tv";
 }
 
 interface UserResult {
@@ -37,29 +37,20 @@ interface TMDBItem {
     poster_path?: string;
 }
 
-interface RAWGItem {
-    id: number;
-    name: string;
-    released?: string;
-    background_image?: string;
-}
-
 type SearchTab = "media" | "users";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function buildArchiveId(item: MediaResult): string {
-    if (item.type === "game")  return `game-${item.id.replace("search-game-", "").replace("trend-game-", "")}`;
     if (item.type === "movie") return `movie-${item.id.replace("search-movie-", "").replace("trend-movie-", "")}`;
     return `show-${item.id.replace("search-tv-", "").replace("trend-tv-", "")}`;
 }
 
-const TYPE_ICON = { movie: FaFilm, tv: FaTv, game: FaGamepad };
+const TYPE_ICON = { movie: FaFilm, tv: FaTv };
 
 const TYPE_COLOR: Record<string, string> = {
     movie: "text-blue-400 border-blue-400/30 bg-blue-400/5",
     tv:    "text-green-400 border-green-400/30 bg-green-400/5",
-    game:  "text-yellow-400 border-yellow-400/30 bg-yellow-400/5",
 };
 
 const ROLE_UI: Record<string, { label: string; icon: React.ElementType; color: string; dot: string }> = {
@@ -89,11 +80,10 @@ export default function HeaderSearch() {
         (async () => {
             try {
                 const tmdbKey = process.env.NEXT_PUBLIC_TMDB_API_KEY;
-                const rawgKey = process.env.NEXT_PUBLIC_RAWG_API_KEY;
 
-                const [tmdb, rawg] = await Promise.all([
+                const [tmdb] = await Promise.all([
                     tmdbKey
-                        ? fetch(`https://api.themoviedb.org/3/trending/all/day?api_key=${tmdbKey}`)
+                        ? fetch(`https://api.themoviedb.org/3/trending/multi/day?api_key=${tmdbKey}`)
                             .then(r => r.json())
                             .then(d => (d.results || [])
                                 .filter((i: TMDBItem) => i.media_type === "movie" || i.media_type === "tv")
@@ -107,21 +97,9 @@ export default function HeaderSearch() {
                                 }))
                             ).catch(() => [])
                         : [],
-                    rawgKey
-                        ? fetch(`https://api.rawg.io/api/games?key=${rawgKey}&ordering=-added&page_size=3`)
-                            .then(r => r.json())
-                            .then(d => (d.results || []).map((g: RAWGItem) => ({
-                                id: `trend-game-${g.id}`,
-                                title: g.name,
-                                year: g.released?.split("-")[0],
-                                imageUrl: g.background_image || undefined,
-                                type: "game" as const,
-                            })))
-                            .catch(() => [])
-                        : [],
                 ]);
 
-                if (alive) setTrending([...tmdb, ...rawg].sort(() => 0.5 - Math.random()).slice(0, 7));
+                if (alive) setTrending([...tmdb].sort(() => 0.5 - Math.random()).slice(0, 7));
             } catch {}
         })();
         return () => { alive = false; };
@@ -136,12 +114,9 @@ export default function HeaderSearch() {
             setLoading(true);
             try {
                 const tmdbKey = process.env.NEXT_PUBLIC_TMDB_API_KEY;
-                const rawgKey = process.env.NEXT_PUBLIC_RAWG_API_KEY;
-                const q = encodeURIComponent(query);
-
-                const [tmdb, rawg] = await Promise.all([
+                const [tmdb] = await Promise.all([
                     tmdbKey
-                        ? fetch(`https://api.themoviedb.org/3/search/multi?api_key=${tmdbKey}&query=${q}`)
+                        ? fetch(`https://api.themoviedb.org/3/search/multi?api_key=${tmdbKey}&query=${encodeURIComponent(query)}`)
                             .then(r => r.json())
                             .then(d => (d.results || [])
                                 .filter((i: TMDBItem) => i.media_type === "movie" || i.media_type === "tv")
@@ -155,21 +130,9 @@ export default function HeaderSearch() {
                                 })))
                             .catch(() => [])
                         : [],
-                    rawgKey
-                        ? fetch(`https://api.rawg.io/api/games?key=${rawgKey}&search=${q}&page_size=4`)
-                            .then(r => r.json())
-                            .then(d => (d.results || []).map((g: RAWGItem) => ({
-                                id: `search-game-${g.id}`,
-                                title: g.name,
-                                year: g.released?.split("-")[0],
-                                imageUrl: g.background_image || undefined,
-                                type: "game" as const,
-                            })))
-                            .catch(() => [])
-                        : [],
                 ]);
 
-                setResults([...tmdb, ...rawg].slice(0, 9));
+                setResults(tmdb.slice(0, 9));
             } catch {}
             finally { setLoading(false); }
         }, 280);
@@ -232,16 +195,16 @@ export default function HeaderSearch() {
                 className={`flex items-center gap-2 px-3 py-2 border transition-all duration-200 ${
                     open
                         ? activeTab === "users"
-                            ? "border-blue-400/40 bg-white/[0.05] w-72"
-                            : "border-yellow-400/40 bg-white/[0.05] w-72"
-                        : "border-white/5 bg-white/[0.02] w-52"
+                            ? "border-blue-400/40 bg-[var(--foreground)]/[0.05] w-72"
+                            : "border-yellow-400/40 bg-[var(--foreground)]/[0.05] w-72"
+                        : "border-[var(--border-subtle)] bg-[var(--foreground)]/[0.02] w-52"
                 }`}
             >
                 {loading
                     ? <FaSpinner size={10} className="text-yellow-400 animate-spin shrink-0" />
                     : activeTab === "users"
-                        ? <FaUser size={10} className={`shrink-0 transition-colors ${open ? "text-blue-400" : "text-slate-600"}`} />
-                        : <FaSearch size={10} className={`shrink-0 transition-colors ${open ? "text-yellow-400" : "text-slate-600"}`} />
+                        ? <FaUser size={10} className={`shrink-0 transition-colors ${open ? "text-blue-400" : "text-[var(--muted-foreground)]"}`} />
+                        : <FaSearch size={10} className={`shrink-0 transition-colors ${open ? "text-yellow-400" : "text-[var(--muted-foreground)]"}`} />
                 }
                 <input
                     ref={inputRef}
@@ -250,13 +213,13 @@ export default function HeaderSearch() {
                     onChange={e => setQuery(e.target.value)}
                     onFocus={() => setOpen(true)}
                     placeholder={activeTab === "users" ? "Search users…" : "Search archives…"}
-                    className="flex-1 bg-transparent text-[11px] font-medium text-white placeholder-slate-600 outline-none min-w-0"
+                    className="flex-1 bg-transparent text-[11px] font-medium text-[var(--foreground)] placeholder-[var(--muted-foreground)] outline-none min-w-0"
                 />
                 {query && (
                     <button
                         type="button"
                         onClick={() => { setQuery(""); inputRef.current?.focus(); }}
-                        className="text-slate-600 hover:text-white transition-colors shrink-0"
+                        className="text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors shrink-0"
                     >
                         <FaTimes size={9} />
                     </button>
@@ -265,17 +228,17 @@ export default function HeaderSearch() {
 
             {/* ── Dropdown ──────────────────────────────────────────────── */}
             {open && (
-                <div className="absolute top-full right-0 mt-1 w-80 bg-[#090909] border border-white/10 shadow-[0_24px_60px_rgba(0,0,0,0.9)] z-[100] overflow-hidden">
+                <div className="absolute top-full right-0 mt-1 w-80 bg-[#090909] border border-[var(--border-subtle)] shadow-[0_24px_60px_rgba(0,0,0,0.9)] z-[100] overflow-hidden">
 
                     {/* Tab switcher */}
-                    <div className="flex border-b border-white/5">
+                    <div className="flex border-b border-[var(--border-subtle)]">
                         <button
                             type="button"
                             onClick={() => switchTab("media")}
                             className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-[8px] font-black uppercase tracking-[0.2em] transition-all ${
                                 activeTab === "media"
                                     ? "text-yellow-400 bg-yellow-400/5 border-b-2 border-yellow-400"
-                                    : "text-slate-600 hover:text-slate-400"
+                                    : "text-[var(--muted-foreground)] hover:text-[var(--muted-foreground)]"
                             }`}
                         >
                             <FaFilm size={8} /> Media
@@ -286,7 +249,7 @@ export default function HeaderSearch() {
                             className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-[8px] font-black uppercase tracking-[0.2em] transition-all ${
                                 activeTab === "users"
                                     ? "text-blue-400 bg-blue-400/5 border-b-2 border-blue-400"
-                                    : "text-slate-600 hover:text-slate-400"
+                                    : "text-[var(--muted-foreground)] hover:text-[var(--muted-foreground)]"
                             }`}
                         >
                             <FaUser size={8} /> Users
@@ -294,7 +257,7 @@ export default function HeaderSearch() {
                     </div>
 
                     {/* Status bar */}
-                    <div className="flex items-center justify-between px-4 py-1.5 border-b border-white/5 bg-white/[0.02]">
+                    <div className="flex items-center justify-between px-4 py-1.5 border-b border-[var(--border-subtle)] bg-[var(--foreground)]/[0.02]">
                         {activeTab === "media" ? (
                             query.trim() ? (
                                 <span className="text-[8px] font-black uppercase tracking-[0.3em] text-blue-400 flex items-center gap-1.5">
@@ -302,17 +265,17 @@ export default function HeaderSearch() {
                                     Live Results
                                 </span>
                             ) : (
-                                <span className="text-[8px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-1.5">
+                                <span className="text-[8px] font-black uppercase tracking-[0.3em] text-[var(--muted-foreground)] flex items-center gap-1.5">
                                     <FaFire size={8} className="text-yellow-400" /> Trending
                                 </span>
                             )
                         ) : (
-                            <span className="text-[8px] font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-1.5">
+                            <span className="text-[8px] font-black uppercase tracking-[0.3em] text-[var(--muted-foreground)] flex items-center gap-1.5">
                                 <FaUser size={8} className="text-blue-400" />
                                 {query.trim() ? "User Search" : "Type a name…"}
                             </span>
                         )}
-                        <span className="text-[8px] font-bold text-slate-700">
+                        <span className="text-[8px] font-bold text-[var(--muted-foreground)]">
                             {activeTab === "media" ? `${mediaDisplay.length} results` : `${userResults.length} users`}
                         </span>
                     </div>
@@ -328,9 +291,9 @@ export default function HeaderSearch() {
                                         <Link
                                             href={`/archives/${archiveId}`}
                                             onClick={() => { setOpen(false); setQuery(""); }}
-                                            className="flex items-center gap-3 px-4 py-3 hover:bg-white/[0.04] transition-colors group"
+                                            className="flex items-center gap-3 px-4 py-3 hover:bg-[var(--foreground)]/[0.04] transition-colors group"
                                         >
-                                            <div className="relative w-9 h-14 shrink-0 bg-white/5 border border-white/5 overflow-hidden">
+                                            <div className="relative w-9 h-14 shrink-0 bg-[var(--foreground)]/5 border border-[var(--border-subtle)] overflow-hidden">
                                                 {item.imageUrl ? (
                                                     <Image
                                                         src={item.imageUrl}
@@ -341,12 +304,12 @@ export default function HeaderSearch() {
                                                     />
                                                 ) : (
                                                     <div className="w-full h-full flex items-center justify-center">
-                                                        <Icon size={12} className="text-slate-700" />
+                                                        <Icon size={12} className="text-[var(--muted-foreground)]" />
                                                     </div>
                                                 )}
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                                <p className="text-[11px] font-black text-slate-200 group-hover:text-white truncate uppercase tracking-tight transition-colors">
+                                                <p className="text-[11px] font-black text-[var(--foreground)] group-hover:text-[var(--foreground)] truncate uppercase tracking-tight transition-colors">
                                                     {item.title}
                                                 </p>
                                                 <div className="flex items-center gap-2 mt-1">
@@ -354,17 +317,17 @@ export default function HeaderSearch() {
                                                         {item.type === "tv" ? "TV Show" : item.type}
                                                     </span>
                                                     {item.year && (
-                                                        <span className="text-[9px] text-slate-600 font-bold">{item.year}</span>
+                                                        <span className="text-[9px] text-[var(--muted-foreground)] font-bold">{item.year}</span>
                                                     )}
                                                 </div>
                                             </div>
-                                            <FaChevronRight size={8} className="text-slate-700 group-hover:text-yellow-400 transition-colors shrink-0" />
+                                            <FaChevronRight size={8} className="text-[var(--muted-foreground)] group-hover:text-yellow-400 transition-colors shrink-0" />
                                         </Link>
                                     </li>
                                 );
                             }) : (
                                 <div className="py-10 text-center">
-                                    <p className="text-[9px] font-black text-slate-700 uppercase tracking-widest">No results found</p>
+                                    <p className="text-[9px] font-black text-[var(--muted-foreground)] uppercase tracking-widest">No results found</p>
                                 </div>
                             )}
                         </ul>
@@ -375,8 +338,8 @@ export default function HeaderSearch() {
                         <ul className="max-h-[400px] overflow-y-auto">
                             {!query.trim() ? (
                                 <div className="py-10 text-center">
-                                    <FaUser size={20} className="mx-auto text-slate-800 mb-3" />
-                                    <p className="text-[9px] font-black text-slate-700 uppercase tracking-widest">Type a name to find users</p>
+                                    <FaUser size={20} className="mx-auto text-[var(--foreground)] mb-3" />
+                                    <p className="text-[9px] font-black text-[var(--muted-foreground)] uppercase tracking-widest">Type a name to find users</p>
                                 </div>
                             ) : userResults.length > 0 ? userResults.map(user => {
                                 const cfg      = ROLE_UI[user.role] ?? ROLE_UI["audience"];
@@ -387,19 +350,19 @@ export default function HeaderSearch() {
                                         <Link
                                             href={`/user/${user.id}`}
                                             onClick={() => { setOpen(false); setQuery(""); }}
-                                            className="flex items-center gap-3 px-4 py-3 hover:bg-white/[0.04] transition-colors group"
+                                            className="flex items-center gap-3 px-4 py-3 hover:bg-[var(--foreground)]/[0.04] transition-colors group"
                                         >
                                             {/* Avatar */}
-                                            <div className="relative w-9 h-9 shrink-0 bg-white/5 border border-white/5 flex items-center justify-center text-[10px] font-black text-slate-400 select-none">
+                                            <div className="relative w-9 h-9 shrink-0 bg-[var(--foreground)]/5 border border-[var(--border-subtle)] flex items-center justify-center text-[10px] font-black text-[var(--muted-foreground)] select-none">
                                                 {initials}
                                                 <div className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 flex items-center justify-center ${cfg.dot}`}>
-                                                    <RoleIcon size={6} className="text-black" />
+                                                    <RoleIcon size={6} className="text-[var(--background)]" />
                                                 </div>
                                             </div>
 
                                             {/* Info */}
                                             <div className="flex-1 min-w-0">
-                                                <p className="text-[11px] font-black text-slate-200 group-hover:text-white truncate uppercase tracking-tight transition-colors">
+                                                <p className="text-[11px] font-black text-[var(--foreground)] group-hover:text-[var(--foreground)] truncate uppercase tracking-tight transition-colors">
                                                     {user.full_name}
                                                 </p>
                                                 <span className={`text-[7px] font-black uppercase tracking-widest ${cfg.color}`}>
@@ -407,13 +370,13 @@ export default function HeaderSearch() {
                                                 </span>
                                             </div>
 
-                                            <FaChevronRight size={8} className="text-slate-700 group-hover:text-blue-400 transition-colors shrink-0" />
+                                            <FaChevronRight size={8} className="text-[var(--muted-foreground)] group-hover:text-blue-400 transition-colors shrink-0" />
                                         </Link>
                                     </li>
                                 );
                             }) : (
                                 <div className="py-10 text-center">
-                                    <p className="text-[9px] font-black text-slate-700 uppercase tracking-widest">No users found</p>
+                                    <p className="text-[9px] font-black text-[var(--muted-foreground)] uppercase tracking-widest">No users found</p>
                                 </div>
                             )}
                         </ul>
@@ -423,7 +386,7 @@ export default function HeaderSearch() {
                     {activeTab === "media" && query.trim() && (
                         <button
                             onClick={handleSubmit as any}
-                            className="w-full px-4 py-3 bg-white/[0.02] border-t border-white/5 text-[9px] font-black uppercase tracking-widest text-slate-500 hover:text-white hover:bg-white/5 transition-all flex items-center justify-center gap-2"
+                            className="w-full px-4 py-3 bg-[var(--foreground)]/[0.02] border-t border-[var(--border-subtle)] text-[9px] font-black uppercase tracking-widest text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--foreground)]/5 transition-all flex items-center justify-center gap-2"
                         >
                             <FaSearch size={8} /> See all results for "{query}"
                         </button>

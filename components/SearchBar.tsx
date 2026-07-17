@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { FaSearch, FaSpinner, FaFilm, FaTv, FaGamepad, FaFire, FaChevronRight, FaUser, FaShieldAlt, FaFeatherAlt, FaUserCircle } from 'react-icons/fa';
+import { FaSearch, FaSpinner, FaFilm, FaTv, FaFire, FaChevronRight, FaUser, FaShieldAlt, FaFeatherAlt, FaUserCircle } from 'react-icons/fa';
 import { searchUsers } from '@/app/actions/ratings';
 
 // --- Types ---
@@ -12,7 +12,7 @@ interface MediaResult {
     title: string;
     subtitle?: string;
     imageUrl?: string;
-    type: 'movie' | 'tv' | 'game';
+    type: 'movie' | 'tv';
 }
 
 interface UserResult {
@@ -29,13 +29,6 @@ interface TMDBItem {
     release_date?: string;
     first_air_date?: string;
     poster_path?: string;
-}
-
-interface RAWGItem {
-    id: number;
-    name: string;
-    released?: string;
-    background_image?: string;
 }
 
 type SearchTab = 'media' | 'users';
@@ -62,10 +55,9 @@ export default function SearchBar() {
         const fetchTrending = async () => {
             try {
                 const tmdbKey = process.env.NEXT_PUBLIC_TMDB_API_KEY;
-                const rawgKey = process.env.NEXT_PUBLIC_RAWG_API_KEY;
 
                 const fetchTmdb = tmdbKey
-                    ? fetch(`https://api.themoviedb.org/3/trending/all/day?api_key=${tmdbKey}`)
+                    ? fetch(`https://api.themoviedb.org/3/trending/multi/day?api_key=${tmdbKey}`)
                         .then(res => res.json())
                         .then(data => {
                             if (!data.results) return [];
@@ -82,26 +74,10 @@ export default function SearchBar() {
                         }).catch(() => [])
                     : Promise.resolve([]);
 
-                const fetchRawg = rawgKey
-                    ? fetch(`https://api.rawg.io/api/games?key=${rawgKey}&ordering=-added&page_size=4`)
-                        .then(res => res.json())
-                        .then(data => {
-                            if (!data.results) return [];
-                            return data.results.map((game: RAWGItem) => ({
-                                id: `trend-game-${game.id}`,
-                                title: game.name,
-                                subtitle: game.released ? game.released.split('-')[0] : '',
-                                imageUrl: game.background_image || undefined,
-                                type: 'game' as const
-                            }));
-                        }).catch(() => [])
-                    : Promise.resolve([]);
-
-                const [tmdbResults, games] = await Promise.all([fetchTmdb, fetchRawg]);
+                const [tmdbResults] = await Promise.all([fetchTmdb]);
 
                 if (isMounted) {
-                    const combined = [...tmdbResults, ...games].sort(() => 0.5 - Math.random());
-                    setTrendingResults(combined);
+                    setTrendingResults(tmdbResults);
                 }
             } catch (error) {
                 console.error("Error fetching trending:", error);
@@ -139,19 +115,8 @@ export default function SearchBar() {
                                 type: item.media_type
                             }))) : Promise.resolve([]);
 
-                const fetchRawg = rawgKey
-                    ? fetch(`https://api.rawg.io/api/games?key=${rawgKey}&search=${encodeURIComponent(query)}&page_size=5`)
-                        .then(res => res.json())
-                        .then(data => (data.results || []).map((game: RAWGItem) => ({
-                            id: `search-game-${game.id}`,
-                            title: game.name,
-                            subtitle: game.released ? game.released.split('-')[0] : '',
-                            imageUrl: game.background_image || undefined,
-                            type: 'game' as const
-                        }))) : Promise.resolve([]);
-
-                const [t, g] = await Promise.all([fetchTmdb, fetchRawg]);
-                setResults([...t, ...g].slice(0, 10));
+                const [t] = await Promise.all([fetchTmdb]);
+                setResults(t.slice(0, 10));
             } catch (err) {
                 console.error(err);
             } finally {
@@ -205,13 +170,13 @@ export default function SearchBar() {
                     {loading ? (
                         <FaSpinner className="h-3 w-3 text-yellow-400 animate-spin" />
                     ) : (
-                        <FaSearch className="h-3 w-3 text-slate-500 group-focus-within:text-white transition-colors" />
+                        <FaSearch className="h-3 w-3 text-[var(--muted-foreground)] group-focus-within:text-[var(--foreground)] transition-colors" />
                     )}
                 </div>
                 
                 <input
                     type="text"
-                    className="block w-full pl-12 pr-4 py-4 bg-black/60 border border-slate-800 text-sm font-medium text-white placeholder-slate-600 focus:outline-none focus:border-slate-500 focus:bg-black transition-all tracking-wide uppercase"
+                    className="block w-full pl-12 pr-4 py-4 bg-[var(--background)]/60 border border-[var(--border-subtle)] text-sm font-medium text-[var(--foreground)] placeholder-[var(--muted-foreground)] focus:outline-none focus:border-slate-500 focus:bg-[var(--background)] transition-all tracking-wide uppercase"
                     placeholder={activeTab === 'users' ? "SEARCH USERS..." : "SEARCH ARCHIVES..."}
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
@@ -219,21 +184,21 @@ export default function SearchBar() {
                 />
 
                 <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none hidden md:flex">
-                    <span className="text-[9px] font-black px-1.5 py-0.5 border border-slate-800 text-slate-600 uppercase">Input Active</span>
+                    <span className="text-[9px] font-black px-1.5 py-0.5 border border-[var(--border-subtle)] text-[var(--muted-foreground)] uppercase">Input Active</span>
                 </div>
             </div>
 
             {isOpen && (
-                <div className="absolute top-full left-0 right-0 mt-0 bg-[#0a0a0a] border-x border-b border-slate-800 shadow-[0_30px_60px_rgba(0,0,0,0.9)] overflow-hidden animate-in fade-in slide-in-from-top-1 duration-200">
+                <div className="absolute top-full left-0 right-0 mt-0 bg-[var(--surface)] border-x border-b border-[var(--border-subtle)] shadow-[0_30px_60px_rgba(0,0,0,0.9)] overflow-hidden animate-in fade-in slide-in-from-top-1 duration-200">
                     
                     {/* Tab switcher */}
-                    <div className="flex border-b border-slate-800/70">
+                    <div className="flex border-b border-[var(--border-subtle)]/70">
                         <button
                             onClick={() => setActiveTab('media')}
                             className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-[9px] font-black uppercase tracking-[0.2em] transition-all ${
                                 activeTab === 'media'
-                                    ? 'text-white bg-white/5 border-b-2 border-yellow-400'
-                                    : 'text-slate-600 hover:text-slate-400'
+                                    ? 'text-[var(--foreground)] bg-[var(--foreground)]/5 border-b-2 border-yellow-400'
+                                    : 'text-[var(--muted-foreground)] hover:text-[var(--muted-foreground)]'
                             }`}
                         >
                             <FaFilm size={9} /> Media
@@ -242,8 +207,8 @@ export default function SearchBar() {
                             onClick={() => setActiveTab('users')}
                             className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-[9px] font-black uppercase tracking-[0.2em] transition-all ${
                                 activeTab === 'users'
-                                    ? 'text-white bg-white/5 border-b-2 border-blue-400'
-                                    : 'text-slate-600 hover:text-slate-400'
+                                    ? 'text-[var(--foreground)] bg-[var(--foreground)]/5 border-b-2 border-blue-400'
+                                    : 'text-[var(--muted-foreground)] hover:text-[var(--muted-foreground)]'
                             }`}
                         >
                             <FaUser size={9} /> Users
@@ -251,7 +216,7 @@ export default function SearchBar() {
                     </div>
 
                     {/* Status bar */}
-                    <div className="flex items-center justify-between px-4 py-2 bg-slate-900/40 border-b border-slate-800/50">
+                    <div className="flex items-center justify-between px-4 py-2 bg-[var(--surface)]/40 border-b border-[var(--border-subtle)]/50">
                         <div className="flex items-center gap-2">
                             {activeTab === 'media' ? (
                                 query.trim() ? (
@@ -259,19 +224,19 @@ export default function SearchBar() {
                                 ) : (
                                     <>
                                         <FaFire className="text-yellow-400 w-2.5 h-2.5" />
-                                        <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Trending Intelligence</span>
+                                        <span className="text-[9px] font-black uppercase tracking-[0.2em] text-[var(--muted-foreground)]">Trending Intelligence</span>
                                     </>
                                 )
                             ) : (
                                 <>
                                     <FaUser className="text-blue-400 w-2.5 h-2.5" />
-                                    <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">
+                                    <span className="text-[9px] font-black uppercase tracking-[0.2em] text-[var(--muted-foreground)]">
                                         {query.trim() ? 'User Search' : 'Type to search users'}
                                     </span>
                                 </>
                             )}
                         </div>
-                        <span className="text-[8px] font-bold text-slate-600 uppercase tracking-tighter">
+                        <span className="text-[8px] font-bold text-[var(--muted-foreground)] uppercase tracking-tighter">
                             {activeTab === 'media' ? `${mediaDisplayItems.length} Data Points` : `${userResults.length} Users`}
                         </span>
                     </div>
@@ -285,9 +250,9 @@ export default function SearchBar() {
                                         <Link
                                             href={`/archives/${item.id}`}
                                             onClick={() => { setIsOpen(false); setQuery(''); }}
-                                            className="flex items-center gap-4 p-4 hover:bg-slate-900/50 transition-all group"
+                                            className="flex items-center gap-4 p-4 hover:bg-[var(--surface)]/50 transition-all group"
                                         >
-                                            <div className="relative w-12 h-16 shrink-0 bg-slate-900 border border-slate-800 overflow-hidden">
+                                            <div className="relative w-12 h-16 shrink-0 bg-[var(--surface)] border border-[var(--border-subtle)] overflow-hidden">
                                                 {item.imageUrl ? (
                                                     <Image 
                                                         src={item.imageUrl} 
@@ -297,22 +262,18 @@ export default function SearchBar() {
                                                         sizes="48px" 
                                                     />
                                                 ) : (
-                                                    <div className="w-full h-full flex items-center justify-center text-slate-700">
-                                                        {item.type === 'movie' ? <FaFilm size={14}/> : item.type === 'game' ? <FaGamepad size={14}/> : <FaTv size={14}/>}
+                                                    <div className="w-full h-full flex items-center justify-center text-[var(--muted-foreground)]">
+                                                        {item.type === 'movie' ? <FaFilm size={14}/> : <FaTv size={14}/>}
                                                     </div>
                                                 )}
                                             </div>
 
                                             <div className="flex-1 min-w-0">
-                                                <h4 className="text-[13px] font-black text-slate-300 truncate uppercase tracking-tight group-hover:text-white transition-colors">
+                                                <h4 className="text-[13px] font-black text-[var(--foreground)] truncate uppercase tracking-tight group-hover:text-[var(--foreground)] transition-colors">
                                                     {item.title}
                                                 </h4>
                                                 <div className="flex items-center gap-3 mt-1">
-                                                    <span className={`text-[8px] font-black px-1.5 py-0.5 border transition-all ${
-                                                        item.type === 'game' 
-                                                            ? 'border-yellow-900 text-yellow-700 bg-yellow-400/5 group-hover:border-yellow-400 group-hover:text-yellow-400' 
-                                                            : 'border-blue-900 text-blue-700 bg-blue-400/5 group-hover:border-blue-400 group-hover:text-blue-400'
-                                                    }`}>
+                                                    <span className={`text-[8px] font-black px-1.5 py-0.5 border transition-all border-blue-900 text-blue-700 bg-blue-400/5 group-hover:border-blue-400 group-hover:text-blue-400`}>
                                                         {item.type}
                                                     </span>
                                                 </div>
@@ -324,7 +285,7 @@ export default function SearchBar() {
                                 ))
                             ) : (
                                 <div className="p-10 text-center">
-                                    <p className="text-[10px] font-black text-slate-700 uppercase tracking-widest">No Intelligence Found</p>
+                                    <p className="text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-widest">No Intelligence Found</p>
                                 </div>
                             )}
                         </ul>
@@ -335,8 +296,8 @@ export default function SearchBar() {
                         <ul className="max-h-[480px] overflow-y-auto scrollbar-none">
                             {!query.trim() ? (
                                 <div className="p-10 text-center">
-                                    <FaUser className="mx-auto text-slate-800 mb-3" size={24} />
-                                    <p className="text-[10px] font-black text-slate-700 uppercase tracking-widest">Type a name to find users</p>
+                                    <FaUser className="mx-auto text-[var(--foreground)] mb-3" size={24} />
+                                    <p className="text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-widest">Type a name to find users</p>
                                 </div>
                             ) : userResults.length > 0 ? (
                                 userResults.map((user) => {
@@ -348,20 +309,20 @@ export default function SearchBar() {
                                             <Link
                                                 href={`/user/${user.id}`}
                                                 onClick={() => { setIsOpen(false); setQuery(''); }}
-                                                className="flex items-center gap-4 p-4 hover:bg-slate-900/50 transition-all group"
+                                                className="flex items-center gap-4 p-4 hover:bg-[var(--surface)]/50 transition-all group"
                                             >
                                                 {/* Avatar */}
-                                                <div className="relative w-10 h-10 shrink-0 bg-slate-900 border border-slate-800 flex items-center justify-center text-[11px] font-black text-slate-400 select-none">
+                                                <div className="relative w-10 h-10 shrink-0 bg-[var(--surface)] border border-[var(--border-subtle)] flex items-center justify-center text-[11px] font-black text-[var(--muted-foreground)] select-none">
                                                     {initials}
                                                     <div className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 flex items-center justify-center ${
                                                         user.role === 'admin' ? 'bg-violet-400' : user.role === 'critics' ? 'bg-yellow-400' : 'bg-blue-400'
                                                     }`}>
-                                                        <RoleIcon size={7} className="text-black" />
+                                                        <RoleIcon size={7} className="text-[var(--background)]" />
                                                     </div>
                                                 </div>
 
                                                 <div className="flex-1 min-w-0">
-                                                    <h4 className="text-[13px] font-black text-slate-300 truncate uppercase tracking-tight group-hover:text-white transition-colors">
+                                                    <h4 className="text-[13px] font-black text-[var(--foreground)] truncate uppercase tracking-tight group-hover:text-[var(--foreground)] transition-colors">
                                                         {user.full_name}
                                                     </h4>
                                                     <span className={`text-[8px] font-black uppercase tracking-widest ${roleCfg.color}`}>
@@ -376,15 +337,15 @@ export default function SearchBar() {
                                 })
                             ) : (
                                 <div className="p-10 text-center">
-                                    <p className="text-[10px] font-black text-slate-700 uppercase tracking-widest">No users found</p>
+                                    <p className="text-[10px] font-black text-[var(--muted-foreground)] uppercase tracking-widest">No users found</p>
                                 </div>
                             )}
                         </ul>
                     )}
 
                     {/* Footer */}
-                    <div className="bg-black p-3 border-t border-slate-800 flex justify-center">
-                        <p className="text-[7px] font-bold text-slate-700 uppercase tracking-[0.4em]">Secure Archive Connection Established</p>
+                    <div className="bg-[var(--background)] p-3 border-t border-[var(--border-subtle)] flex justify-center">
+                        <p className="text-[7px] font-bold text-[var(--muted-foreground)] uppercase tracking-[0.4em]">Secure Archive Connection Established</p>
                     </div>
                 </div>
             )}

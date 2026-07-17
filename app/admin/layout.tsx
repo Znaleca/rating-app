@@ -15,18 +15,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     ];
 
     return (
-        <div className="flex min-h-screen bg-[#050505] text-slate-100 font-sans">
+        <div className="flex min-h-screen bg-[var(--background)] text-[var(--foreground)] font-sans">
             {/* Sidebar */}
-            <aside className="w-64 border-r border-white/5 bg-[#080808] flex flex-col shrink-0 hidden md:flex justify-between sticky top-0 h-screen">
+            <aside className="w-64 border-r border-[var(--border-subtle)] bg-[#080808] flex flex-col shrink-0 hidden md:flex justify-between sticky top-0 h-screen">
                 <div className="p-6">
                     {/* Brand */}
-                    <div className="flex items-center gap-3 mb-10 pb-6 border-b border-white/5">
+                    <div className="flex items-center gap-3 mb-10 pb-6 border-b border-[var(--border-subtle)]">
                         <div className="w-8 h-8 bg-yellow-400 flex items-center justify-center">
-                            <FaBolt className="text-black text-sm" />
+                            <FaBolt className="text-[var(--background)] text-sm" />
                         </div>
                         <div>
-                            <p className="text-[8px] font-black uppercase tracking-[0.4em] text-slate-500">Blitz</p>
-                            <p className="text-sm font-black uppercase tracking-widest text-white leading-none">Admin</p>
+                            <p className="text-[8px] font-black uppercase tracking-[0.4em] text-[var(--muted-foreground)]">Blitz</p>
+                            <p className="text-sm font-black uppercase tracking-widest text-[var(--foreground)] leading-none">Admin</p>
                         </div>
                         <div className="ml-auto flex items-center gap-1 px-2 py-1 bg-yellow-400/10 border border-yellow-400/20">
                             <FaShieldAlt className="text-yellow-400 text-[8px]" />
@@ -34,7 +34,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         </div>
                     </div>
 
-                    <p className="text-[8px] font-black uppercase tracking-[0.4em] text-slate-600 mb-4 px-2">Navigation</p>
+                    <p className="text-[8px] font-black uppercase tracking-[0.4em] text-[var(--muted-foreground)] mb-4 px-2">Navigation</p>
                     <nav className="flex flex-col gap-1">
                         {links.map((link) => {
                             const Icon = link.icon;
@@ -46,10 +46,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                                     className={`flex items-center gap-3 px-4 py-3 text-[11px] font-black uppercase tracking-widest transition-all border-l-2 ${
                                         isActive
                                             ? "border-yellow-400 bg-yellow-400/5 text-yellow-400"
-                                            : "border-transparent text-slate-500 hover:text-white hover:bg-white/5"
+                                            : "border-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--foreground)]/5"
                                     }`}
                                 >
-                                    <Icon size={11} className={isActive ? "text-yellow-400" : "text-slate-600"} />
+                                    <Icon size={11} className={isActive ? "text-yellow-400" : "text-[var(--muted-foreground)]"} />
                                     {link.label}
                                 </Link>
                             );
@@ -57,10 +57,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     </nav>
                 </div>
 
-                <div className="p-6 border-t border-white/5">
+                <div className="p-6 border-t border-[var(--border-subtle)]">
                     <Link
                         href="/browse"
-                        className="flex items-center gap-3 px-4 py-3 text-[11px] font-black uppercase tracking-widest text-slate-600 hover:text-white hover:bg-white/5 transition-all border-l-2 border-transparent w-full"
+                        className="flex items-center gap-3 px-4 py-3 text-[11px] font-black uppercase tracking-widest text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--foreground)]/5 transition-all border-l-2 border-transparent w-full"
                     >
                         <FaArrowLeft size={10} />
                         Back to App

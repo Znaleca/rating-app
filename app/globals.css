@@ -1,10 +1,38 @@
 @import "tailwindcss";
 
 :root {
-  --background: #020617;
-  --foreground: #f1f5f9;
+  --background: #ffffff;
+  --foreground: #050505;
+  --muted-foreground: #475569;
+  --header-bg: rgba(255, 255, 255, 0.9);
+  --surface: rgba(255, 255, 255, 0.78);
+  --border-subtle: rgba(15, 23, 42, 0.12);
+  --grid-line: rgba(15, 23, 42, 0.06);
+  --grid-opacity: 0.04;
   --color-blue-400: #60a5fa;
   --color-yellow-400: #facc15;
+}
+
+:root[data-theme="light"] {
+  --background: #ffffff;
+  --foreground: #050505;
+  --muted-foreground: #475569;
+  --header-bg: rgba(255, 255, 255, 0.92);
+  --surface: rgba(255, 255, 255, 0.82);
+  --border-subtle: rgba(15, 23, 42, 0.12);
+  --grid-line: rgba(15, 23, 42, 0.06);
+  --grid-opacity: 0.04;
+}
+
+:root[data-theme="dark"] {
+  --background: #050505;
+  --foreground: #f8fafc;
+  --muted-foreground: #94a3b8;
+  --header-bg: rgba(5, 5, 5, 0.9);
+  --surface: rgba(0, 0, 0, 0.78);
+  --border-subtle: rgba(255, 255, 255, 0.1);
+  --grid-line: rgba(255, 255, 255, 0.04);
+  --grid-opacity: 0.03;
 }
 
 body {
@@ -18,11 +46,11 @@ body {
   width: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #020617;
+  background: var(--background);
 }
 ::-webkit-scrollbar-thumb {
   background: #1e293b;
-  border: 1px solid #020617;
+  border: 1px solid var(--background);
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #facc15;

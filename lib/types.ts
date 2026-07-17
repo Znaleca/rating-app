@@ -1,12 +1,11 @@
-import { FaBolt, FaFilm, FaTv, FaGamepad } from "react-icons/fa";
+import { FaBolt, FaFilm, FaTv } from "react-icons/fa";
 
-export type Category = "All" | "Movies" | "Shows" | "Games";
+export type Category = "All" | "Movies" | "Shows";
 
 export const CATEGORY_ICON_COMPONENTS: Record<Category, React.ElementType> = {
   All: FaBolt,
   Movies: FaFilm,
   Shows: FaTv,
-  Games: FaGamepad,
 };
 
 export interface Review {
@@ -19,7 +18,8 @@ export interface Review {
   reviewer: string;
   avatar: string;
   summary: string;
-  image: string; 
+  image?: string; 
   imageUrl?: string | null;
+  posterUrl?: string | null;
   featured?: boolean;
 }

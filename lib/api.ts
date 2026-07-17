@@ -11,18 +11,8 @@ interface TMDBResult {
   backdrop_path: string | null;
 }
 
-interface RAWGResult {
-  id: number;
-  name: string;
-  rating: number;
-  released: string;
-  genres: { name: string }[];
-  background_image: string | null;
-}
-
 export async function fetchAllMedia(): Promise<Review[]> {
   const tmdbKey = process.env.NEXT_PUBLIC_TMDB_API_KEY;
-  const rawgKey = process.env.NEXT_PUBLIC_RAWG_API_KEY;
 
   const tmdbMoviesReq = tmdbKey ? fetch(`https://api.themoviedb.org/3/trending/movie/week?api_key=${tmdbKey}`).then(res => res.json()).then(data => (data.results || []).map((m: TMDBResult): Review => ({
     id: `movie-${m.id}`,
@@ -52,22 +42,8 @@ export async function fetchAllMedia(): Promise<Review[]> {
     imageUrl: m.backdrop_path ? `https://image.tmdb.org/t/p/w780${m.backdrop_path}` : null,
   }))).catch(() => []) : Promise.resolve([]);
 
-  const rawgReq = rawgKey ? fetch(`https://api.rawg.io/api/games?key=${rawgKey}&ordering=-metacritic&page_size=30`).then(res => res.json()).then(data => (data.results || []).map((g: RAWGResult): Review => ({
-    id: `game-${g.id}`,
-    title: g.name,
-    category: "Games",
-    rating: g.rating ? g.rating * 2 : 0,
-    year: g.released ? g.released.split('-')[0] : 'N/A',
-    genre: g.genres && g.genres.length > 0 ? g.genres[0].name : 'Game',
-    reviewer: 'RAWG',
-    avatar: 'RG',
-    summary: 'Highly rated gaming experience.',
-    image: 'game1',
-    imageUrl: g.background_image || null,
-  }))).catch(() => []) : Promise.resolve([]);
-
-  const [movies, shows, games] = await Promise.all([tmdbMoviesReq, tmdbShowsReq, rawgReq]);
-  const all: Review[] = [...movies, ...shows, ...games];
+  const [movies, shows] = await Promise.all([tmdbMoviesReq, tmdbShowsReq]);
+  const all: Review[] = [...movies, ...shows];
   
   all.sort(() => 0.5 - Math.random());
   return all;

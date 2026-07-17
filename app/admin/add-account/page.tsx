@@ -63,13 +63,13 @@ export default function AddAccountPage() {
     return (
         <div className="p-8 xl:p-12">
             {/* Header */}
-            <div className="mb-10 border-b border-white/5 pb-8">
+            <div className="mb-10 border-b border-[var(--border-subtle)] pb-8">
                 <div className="flex items-center gap-3 mb-2">
                     <FaUserPlus className="text-yellow-400 text-sm" />
-                    <span className="text-[9px] font-black uppercase tracking-[0.4em] text-slate-500">Management</span>
+                    <span className="text-[9px] font-black uppercase tracking-[0.4em] text-[var(--muted-foreground)]">Management</span>
                 </div>
-                <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tighter text-white">Create Account</h1>
-                <p className="text-slate-500 text-sm mt-2 font-medium">Manually create a new user and assign their role</p>
+                <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tighter text-[var(--foreground)]">Create Account</h1>
+                <p className="text-[var(--muted-foreground)] text-sm mt-2 font-medium">Manually create a new user and assign their role</p>
             </div>
 
             <div className="max-w-2xl">
@@ -87,60 +87,60 @@ export default function AddAccountPage() {
                 <form onSubmit={handleSubmit} className="space-y-8">
                     {/* Full Name */}
                     <div>
-                        <label className="block text-[9px] font-black uppercase tracking-[0.4em] text-slate-500 mb-3">
+                        <label className="block text-[9px] font-black uppercase tracking-[0.4em] text-[var(--muted-foreground)] mb-3">
                             Full Name
                         </label>
                         <div className="relative">
-                            <FaUser className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 text-xs" />
+                            <FaUser className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] text-xs" />
                             <input
                                 name="fullName"
                                 type="text"
                                 required
                                 placeholder="John Doe"
-                                className="w-full bg-white/[0.03] border border-white/10 text-white text-sm py-3.5 pl-10 pr-4 placeholder-slate-700 outline-none focus:border-yellow-400 transition-colors"
+                                className="w-full bg-[var(--foreground)]/[0.03] border border-[var(--border-subtle)] text-[var(--foreground)] text-sm py-3.5 pl-10 pr-4 placeholder-[var(--muted-foreground)] outline-none focus:border-yellow-400 transition-colors"
                             />
                         </div>
                     </div>
 
                     {/* Email */}
                     <div>
-                        <label className="block text-[9px] font-black uppercase tracking-[0.4em] text-slate-500 mb-3">
+                        <label className="block text-[9px] font-black uppercase tracking-[0.4em] text-[var(--muted-foreground)] mb-3">
                             Email
                         </label>
                         <div className="relative">
-                            <FaEnvelope className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 text-xs" />
+                            <FaEnvelope className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] text-xs" />
                             <input
                                 name="email"
                                 type="email"
                                 required
                                 placeholder="user@example.com"
-                                className="w-full bg-white/[0.03] border border-white/10 text-white text-sm py-3.5 pl-10 pr-4 placeholder-slate-700 outline-none focus:border-yellow-400 transition-colors"
+                                className="w-full bg-[var(--foreground)]/[0.03] border border-[var(--border-subtle)] text-[var(--foreground)] text-sm py-3.5 pl-10 pr-4 placeholder-[var(--muted-foreground)] outline-none focus:border-yellow-400 transition-colors"
                             />
                         </div>
                     </div>
 
                     {/* Password */}
                     <div>
-                        <label className="block text-[9px] font-black uppercase tracking-[0.4em] text-slate-500 mb-3">
+                        <label className="block text-[9px] font-black uppercase tracking-[0.4em] text-[var(--muted-foreground)] mb-3">
                             Password
                         </label>
                         <div className="relative">
-                            <FaLock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 text-xs" />
+                            <FaLock className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] text-xs" />
                             <input
                                 name="password"
                                 type="password"
                                 required
                                 minLength={6}
                                 placeholder="••••••••"
-                                className="w-full bg-white/[0.03] border border-white/10 text-white text-sm py-3.5 pl-10 pr-4 placeholder-slate-700 outline-none focus:border-yellow-400 transition-colors"
+                                className="w-full bg-[var(--foreground)]/[0.03] border border-[var(--border-subtle)] text-[var(--foreground)] text-sm py-3.5 pl-10 pr-4 placeholder-[var(--muted-foreground)] outline-none focus:border-yellow-400 transition-colors"
                             />
                         </div>
-                        <p className="text-slate-600 text-[10px] mt-2 font-medium">Must be at least 6 characters</p>
+                        <p className="text-[var(--muted-foreground)] text-[10px] mt-2 font-medium">Must be at least 6 characters</p>
                     </div>
 
                     {/* Role Selection */}
                     <div>
-                        <label className="block text-[9px] font-black uppercase tracking-[0.4em] text-slate-500 mb-4">
+                        <label className="block text-[9px] font-black uppercase tracking-[0.4em] text-[var(--muted-foreground)] mb-4">
                             Assign Role
                         </label>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -153,7 +153,7 @@ export default function AddAccountPage() {
                                         className={`flex flex-col p-5 cursor-pointer border transition-all ${
                                             isSelected
                                                 ? `${option.accent} ${option.bg}`
-                                                : "border-white/5 bg-white/[0.02] hover:bg-white/[0.05]"
+                                                : "border-[var(--border-subtle)] bg-[var(--foreground)]/[0.02] hover:bg-[var(--foreground)]/[0.05]"
                                         }`}
                                     >
                                         <input
@@ -164,9 +164,9 @@ export default function AddAccountPage() {
                                             checked={isSelected}
                                             onChange={() => setSelectedRole(option.value)}
                                         />
-                                        <Icon className={`${isSelected ? option.text : "text-slate-600"} mb-3 text-lg transition-colors`} />
-                                        <span className="text-sm font-black text-white uppercase tracking-tight mb-1">{option.label}</span>
-                                        <span className="text-[10px] text-slate-500 font-medium leading-relaxed">{option.desc}</span>
+                                        <Icon className={`${isSelected ? option.text : "text-[var(--muted-foreground)]"} mb-3 text-lg transition-colors`} />
+                                        <span className="text-sm font-black text-[var(--foreground)] uppercase tracking-tight mb-1">{option.label}</span>
+                                        <span className="text-[10px] text-[var(--muted-foreground)] font-medium leading-relaxed">{option.desc}</span>
                                     </label>
                                 );
                             })}
@@ -176,7 +176,7 @@ export default function AddAccountPage() {
                     <button
                         type="submit"
                         disabled={loading}
-                        className="px-8 py-4 bg-white text-black text-[10px] font-black uppercase tracking-[0.3em] hover:bg-yellow-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3"
+                        className="px-8 py-4 bg-[var(--foreground)] text-[var(--background)] text-[10px] font-black uppercase tracking-[0.3em] hover:bg-yellow-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3"
                     >
                         {loading ? (
                             <>

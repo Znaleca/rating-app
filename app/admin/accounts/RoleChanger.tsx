@@ -29,14 +29,14 @@ export default function RoleChanger({ profileId, currentRole }: { profileId: str
                 value={role}
                 onChange={(e) => handleChange(e.target.value)}
                 disabled={loading}
-                className="bg-[#0a0a0a] border border-white/10 text-white text-[9px] font-black uppercase tracking-widest px-3 py-2 outline-none focus:border-yellow-400 transition-colors disabled:opacity-50 cursor-pointer"
+                className="bg-[var(--surface)] border border-[var(--border-subtle)] text-[var(--foreground)] text-[9px] font-black uppercase tracking-widest px-3 py-2 outline-none focus:border-yellow-400 transition-colors disabled:opacity-50 cursor-pointer"
             >
                 {ROLES.map(r => (
                     <option key={r} value={r}>{r}</option>
                 ))}
             </select>
             {saved && <span className="text-[8px] font-black text-green-400 uppercase tracking-widest">✓ Saved</span>}
-            {loading && <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest">…</span>}
+            {loading && <span className="text-[8px] font-black text-[var(--muted-foreground)] uppercase tracking-widest">…</span>}
         </div>
     );
 }

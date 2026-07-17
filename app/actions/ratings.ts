@@ -4,6 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { revalidatePath } from "next/cache";
 
+const BULK_SUMMARY_CACHE_TTL_MS = 5 * 60 * 1000;
+const bulkRatingsSummaryCache = new Map<string, { expiresAt: number; summaries: Record<string, { criticAverage: string; audienceAverage: string }> }>();
+
 interface InteractionData {
     rating?: number | null;
     status?: string | null;
@@ -11,6 +14,7 @@ interface InteractionData {
     title: string;
     posterUrl: string | null;
     mediaType: string;
+    genre?: string | null;
 }
 
 export async function updateInteraction(mediaId: string, data: InteractionData) {
@@ -37,6 +41,7 @@ export async function updateInteraction(mediaId: string, data: InteractionData) 
     if (data.rating !== undefined) payload.rating = data.rating;
     if (data.status !== undefined) payload.status = data.status;
     if (data.review !== undefined) payload.review = data.review;
+    if (data.genre !== undefined) payload.genre = data.genre;
 
     // Upsert interaction
     const { error } = await supabase
@@ -154,12 +159,19 @@ export async function getUserInteractions() {
 
 export async function getBulkRatingsSummaries(mediaIds: string[]) {
     const supabase = await createClient();
-    
+
+    const uniqueIds = Array.from(new Set((mediaIds || []).filter(Boolean)));
+    const cacheKey = uniqueIds.slice().sort().join("|");
+    const cached = bulkRatingsSummaryCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+        return cached.summaries;
+    }
+
     // Default structure for all ids requested
     const summaries: Record<string, { criticAverage: string, audienceAverage: string }> = {};
-    mediaIds.forEach(id => summaries[id] = { criticAverage: "N/A", audienceAverage: "N/A" });
+    uniqueIds.forEach(id => summaries[id] = { criticAverage: "N/A", audienceAverage: "N/A" });
 
-    if (!mediaIds || mediaIds.length === 0) return summaries;
+    if (uniqueIds.length === 0) return summaries;
 
     const { data: ratings, error } = await supabase
         .from("ratings")
@@ -168,14 +180,14 @@ export async function getBulkRatingsSummaries(mediaIds: string[]) {
             rating,
             profiles (role)
         `)
-        .in("media_id", mediaIds) as unknown as { 
+        .in("media_id", uniqueIds) as unknown as { 
             data: { media_id: string, rating: number | null, profiles: { role: string } | null }[] | null, 
             error: any 
         };
 
     if (ratings && !error) {
         const stats: Record<string, { criticTotal: number, criticCount: number, audTotal: number, audCount: number }> = {};
-        mediaIds.forEach(id => stats[id] = { criticTotal: 0, criticCount: 0, audTotal: 0, audCount: 0 });
+        uniqueIds.forEach(id => stats[id] = { criticTotal: 0, criticCount: 0, audTotal: 0, audCount: 0 });
 
         ratings.forEach((row) => {
             if (row.rating != null && stats[row.media_id]) {
@@ -190,7 +202,7 @@ export async function getBulkRatingsSummaries(mediaIds: string[]) {
             }
         });
 
-        mediaIds.forEach(id => {
+        uniqueIds.forEach(id => {
             const s = stats[id];
             summaries[id] = {
                 criticAverage: s.criticCount > 0 ? (s.criticTotal / s.criticCount).toFixed(1) : "N/A",
@@ -198,6 +210,11 @@ export async function getBulkRatingsSummaries(mediaIds: string[]) {
             };
         });
     }
+
+    bulkRatingsSummaryCache.set(cacheKey, {
+        expiresAt: Date.now() + BULK_SUMMARY_CACHE_TTL_MS,
+        summaries,
+    });
 
     return summaries;
 }
@@ -238,5 +255,41 @@ export async function getPublicUserProfile(userId: string) {
     return {
         profile,
         interactions: interactions || [],
+    };
+}
+
+export async function getUserTasteProfile() {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+
+    const { data: interactions, error } = await supabase
+        .from("ratings")
+        .select("media_id, rating, media_type, title, poster_url")
+        .eq("user_id", user.id)
+        .not("rating", "is", null)
+        .order("rating", { ascending: false })
+        .limit(20);
+
+    if (error || !interactions || interactions.length === 0) return null;
+
+    // Count category preferences
+    const categoryCounts: Record<string, number> = {};
+    interactions.forEach(item => {
+        const cat = item.media_type || "movie";
+        categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
+    });
+
+    const topCategories = Object.entries(categoryCounts)
+        .sort((a, b) => b[1] - a[1])
+        .map(([cat]) => cat);
+
+    // Top rated items for "Because you rated X" sections
+    const topRated = interactions.slice(0, 3);
+
+    return {
+        topRated,
+        topCategories,
+        totalRated: interactions.length,
     };
 }

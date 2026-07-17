@@ -31,18 +31,18 @@ export default async function AdminAccountsPage() {
     return (
         <div className="p-8 xl:p-12">
             {/* Header */}
-            <div className="mb-10 border-b border-white/5 pb-8 flex items-end justify-between gap-6">
+            <div className="mb-10 border-b border-[var(--border-subtle)] pb-8 flex items-end justify-between gap-6">
                 <div>
                     <div className="flex items-center gap-3 mb-2">
                         <FaUsers className="text-blue-400 text-sm" />
-                        <span className="text-[9px] font-black uppercase tracking-[0.4em] text-slate-500">Management</span>
+                        <span className="text-[9px] font-black uppercase tracking-[0.4em] text-[var(--muted-foreground)]">Management</span>
                     </div>
-                    <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tighter text-white">Accounts</h1>
-                    <p className="text-slate-500 text-sm mt-2 font-medium">Manage user roles and permissions</p>
+                    <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tighter text-[var(--foreground)]">Accounts</h1>
+                    <p className="text-[var(--muted-foreground)] text-sm mt-2 font-medium">Manage user roles and permissions</p>
                 </div>
                 <div className="flex flex-col items-end gap-1 shrink-0">
-                    <p className="text-4xl font-black text-white">{profiles?.length ?? 0}</p>
-                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Total Users</p>
+                    <p className="text-4xl font-black text-[var(--foreground)]">{profiles?.length ?? 0}</p>
+                    <p className="text-[9px] font-black uppercase tracking-widest text-[var(--muted-foreground)]">Total Users</p>
                 </div>
             </div>
 
@@ -51,17 +51,17 @@ export default async function AdminAccountsPage() {
                     Error loading profiles. Ensure you have added the Admin RLS policy in Supabase.
                 </div>
             ) : !profiles || profiles.length === 0 ? (
-                <div className="text-center py-24 border border-white/5 text-slate-600 font-black uppercase tracking-widest text-sm">
+                <div className="text-center py-24 border border-[var(--border-subtle)] text-[var(--muted-foreground)] font-black uppercase tracking-widest text-sm">
                     No users found
                 </div>
             ) : (
-                <div className="border border-white/5 overflow-hidden">
+                <div className="border border-[var(--border-subtle)] overflow-hidden">
                     {/* Table header */}
-                    <div className="grid grid-cols-12 bg-white/[0.02] border-b border-white/5 px-6 py-3">
-                        <div className="col-span-5 text-[9px] font-black uppercase tracking-widest text-slate-500">User</div>
-                        <div className="col-span-3 text-[9px] font-black uppercase tracking-widest text-slate-500">Role</div>
-                        <div className="col-span-2 text-[9px] font-black uppercase tracking-widest text-slate-500">Joined</div>
-                        <div className="col-span-2 text-[9px] font-black uppercase tracking-widest text-slate-500">Change Role</div>
+                    <div className="grid grid-cols-12 bg-[var(--foreground)]/[0.02] border-b border-[var(--border-subtle)] px-6 py-3">
+                        <div className="col-span-5 text-[9px] font-black uppercase tracking-widest text-[var(--muted-foreground)]">User</div>
+                        <div className="col-span-3 text-[9px] font-black uppercase tracking-widest text-[var(--muted-foreground)]">Role</div>
+                        <div className="col-span-2 text-[9px] font-black uppercase tracking-widest text-[var(--muted-foreground)]">Joined</div>
+                        <div className="col-span-2 text-[9px] font-black uppercase tracking-widest text-[var(--muted-foreground)]">Change Role</div>
                     </div>
 
                     {/* Rows */}
@@ -70,15 +70,15 @@ export default async function AdminAccountsPage() {
                             const cfg = roleConfig[profile.role] ?? roleConfig.audience;
                             const Icon = cfg.icon;
                             return (
-                                <div key={profile.id} className="grid grid-cols-12 px-6 py-4 items-center hover:bg-white/[0.02] transition-colors">
+                                <div key={profile.id} className="grid grid-cols-12 px-6 py-4 items-center hover:bg-[var(--foreground)]/[0.02] transition-colors">
                                     {/* User */}
                                     <div className="col-span-5 flex items-center gap-4">
-                                        <div className="w-9 h-9 bg-white/5 border border-white/10 flex items-center justify-center text-[10px] font-black text-slate-400 shrink-0">
+                                        <div className="w-9 h-9 bg-[var(--foreground)]/5 border border-[var(--border-subtle)] flex items-center justify-center text-[10px] font-black text-[var(--muted-foreground)] shrink-0">
                                             {(profile.full_name || "U").substring(0, 2).toUpperCase()}
                                         </div>
                                         <div>
-                                            <p className="text-sm font-black text-white">{profile.full_name || "Unknown User"}</p>
-                                            <p className="text-[9px] text-slate-600 uppercase tracking-widest font-bold">{profile.id.substring(0, 8)}…</p>
+                                            <p className="text-sm font-black text-[var(--foreground)]">{profile.full_name || "Unknown User"}</p>
+                                            <p className="text-[9px] text-[var(--muted-foreground)] uppercase tracking-widest font-bold">{profile.id.substring(0, 8)}…</p>
                                         </div>
                                     </div>
 
@@ -92,7 +92,7 @@ export default async function AdminAccountsPage() {
 
                                     {/* Joined */}
                                     <div className="col-span-2">
-                                        <p className="text-[10px] font-bold text-slate-500">
+                                        <p className="text-[10px] font-bold text-[var(--muted-foreground)]">
                                             {new Date(profile.created_at).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}
                                         </p>
                                     </div>
